@@ -1,0 +1,152 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle dot-grid background */
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+/* Orange glow orb behind the card */
+.glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(232, 68, 10, 0.18) 0%, transparent 70%);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+  50%       { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03),
+    var(--shadow-lg);
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoMark {
+  width: 40px;
+  height: 40px;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(232, 68, 10, 0.4);
+}
+
+.logoName {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.logoSub {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Heading */
+.heading { display: flex; flex-direction: column; gap: 4px; }
+.title   { font-size: 1.5rem; font-weight: 800; }
+.subtitle { font-size: 0.9rem; color: var(--color-text-muted); }
+
+/* Form */
+.form { display: flex; flex-direction: column; gap: 16px; }
+
+/* Password field with eye toggle */
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordWrapper .form-input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.eyeBtn:hover {
+  color: var(--color-text);
+}
+
+.errorBox {
+  background: var(--color-danger-dim);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+.footer {
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* (magic-link sent state removed) */

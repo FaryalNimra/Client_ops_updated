@@ -1,0 +1,706 @@
+/* ============================================================
+   ClientOps — Landing Page Styles
+   Deep Space Black (#080808) + Radiant Flame Orange (#E8440A)
+   ============================================================ */
+
+.pageWrapper {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  overflow-x: hidden;
+  position: relative;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Background Glow & Tech Grid ── */
+.ambientGrid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambientGlowTop {
+  position: absolute;
+  top: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(232, 68, 10, 0.18) 0%, rgba(232, 68, 10, 0.03) 50%, transparent 75%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambientGlowMiddle {
+  position: absolute;
+  top: 45%;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.08) 0%, transparent 70%);
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Sticky Navbar ── */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(8, 8, 8, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+}
+
+.navContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logoGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.logoIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #E8440A 0%, #FF6B35 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 16px rgba(232, 68, 10, 0.4);
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+}
+
+.brandName {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.brandBadge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary-light);
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.navLink {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: #ffffff;
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Hero Section ── */
+.heroSection {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 80px 24px 60px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pillBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(232, 68, 10, 0.1);
+  border: 1px solid rgba(232, 68, 10, 0.35);
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  margin-bottom: 24px;
+  box-shadow: 0 0 20px rgba(232, 68, 10, 0.15);
+}
+
+.pillDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22C55E;
+  box-shadow: 0 0 8px #22C55E;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.heroTitle {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  max-width: 900px;
+  margin-bottom: 24px;
+}
+
+.titleHighlight {
+  background: linear-gradient(135deg, #FF7A45 0%, #E8440A 50%, #FFB088 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroDesc {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--color-text-muted);
+  max-width: 680px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.heroCtaGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 48px;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #E8440A 0%, #C73400 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 14px 28px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(232, 68, 10, 0.45);
+  transition: all 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.primaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(232, 68, 10, 0.6);
+  background: linear-gradient(135deg, #FF571C 0%, #E8440A 100%);
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e5e5;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.secondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* ── User Active Session Banner ── */
+.activeSessionBanner {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 12px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+  color: #4ADE80;
+}
+
+.activeSessionBtn {
+  margin-left: auto;
+  background: #22C55E;
+  color: #000;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  transition: opacity 0.2s ease;
+}
+
+.activeSessionBtn:hover {
+  opacity: 0.9;
+}
+
+/* ── Roles Section ── */
+.rolesSection {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.sectionPretitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.sectionDesc {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.rolesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.roleCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.roleCard:hover {
+  transform: translateY(-6px);
+  border-color: rgba(232, 68, 10, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(232, 68, 10, 0.12);
+}
+
+.cardTopAccent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.superAdminAccent {
+  background: linear-gradient(90deg, #E8440A, #FF9F1C);
+}
+
+.adminAccent {
+  background: linear-gradient(90deg, #3B82F6, #60A5FA);
+}
+
+.clientAccent {
+  background: linear-gradient(90deg, #10B981, #34D399);
+}
+
+.roleHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.roleIconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.roleIconSuper {
+  background: rgba(232, 68, 10, 0.15);
+  border: 1px solid rgba(232, 68, 10, 0.3);
+  color: #FF7A45;
+}
+
+.roleIconAdmin {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60A5FA;
+}
+
+.roleIconClient {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34D399;
+}
+
+.roleMeta {
+  flex: 1;
+}
+
+.roleBadge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.badgeSuper { background: rgba(232, 68, 10, 0.2); color: #FF7A45; }
+.badgeAdmin { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
+.badgeClient { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+
+.roleName {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.roleSummary {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.roleFeaturesList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex: 1;
+}
+
+.roleFeatureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #D1D5DB;
+  line-height: 1.4;
+}
+
+.checkIcon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.checkSuper { background: rgba(232, 68, 10, 0.2); color: #FF7A45; }
+.checkAdmin { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
+.checkClient { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+
+.roleActionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.btnSuper {
+  background: rgba(232, 68, 10, 0.15);
+  color: #FF7A45;
+  border: 1px solid rgba(232, 68, 10, 0.35);
+}
+.btnSuper:hover {
+  background: #E8440A;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(232, 68, 10, 0.4);
+}
+
+.btnAdmin {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60A5FA;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+.btnAdmin:hover {
+  background: #2563EB;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+}
+
+.btnClient {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.btnClient:hover {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.4);
+}
+
+/* ── Platform Features Section ── */
+.featuresSection {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.featureCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.2s ease;
+}
+
+.featureCard:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--color-surface-2);
+}
+
+.featureIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+}
+
+.featureTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.featureText {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── How It Works / Workflow ── */
+.workflowSection {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.stepsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  position: relative;
+}
+
+.stepCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(232, 68, 10, 0.15);
+  color: var(--color-primary-light);
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.stepTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.stepText {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── CTA Banner ── */
+.bottomCtaSection {
+  position: relative;
+  z-index: 1;
+  max-width: 1000px;
+  margin: 0 auto 80px;
+  padding: 0 24px;
+}
+
+.ctaBox {
+  background: linear-gradient(135deg, rgba(232, 68, 10, 0.15) 0%, rgba(18, 18, 18, 0.9) 100%);
+  border: 1px solid rgba(232, 68, 10, 0.4);
+  border-radius: 24px;
+  padding: 48px 32px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(232, 68, 10, 0.1);
+}
+
+.ctaTitle {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.ctaDesc {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  max-width: 550px;
+  margin: 0 auto 28px;
+}
+
+/* ── Footer ── */
+.footer {
+  border-top: 1px solid var(--color-border-subtle);
+  background: #050505;
+  padding: 40px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.footerContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.footerTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.footerCopy {
+  font-size: 0.82rem;
+  color: var(--color-text-faint);
+}
+
+.footerStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #9CA3AF;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .navLinks {
+    display: none;
+  }
+  .heroSection {
+    padding-top: 48px;
+  }
+  .rolesGrid {
+    grid-template-columns: 1fr;
+  }
+}
