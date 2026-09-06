@@ -20,7 +20,6 @@ export default async function ClientLayout({
     .maybeSingle()
 
   const profile = rawProfile as { role: string; full_name: string | null; email: string; client_id: string | null } | null
-  const role = profile?.role || user.user_metadata?.role || user.app_metadata?.role
 
   if (profile?.role === 'super_admin') {
     redirect('/super-admin')

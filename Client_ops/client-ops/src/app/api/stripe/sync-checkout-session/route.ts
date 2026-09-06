@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     let customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id || null
-    let subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id || null
+    const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id || null
 
     let purchaseDate = new Date().toISOString().split('T')[0]
 

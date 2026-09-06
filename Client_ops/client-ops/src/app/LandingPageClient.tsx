@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
 import styles from './landing.module.css'
@@ -18,26 +18,11 @@ interface LandingPageProps {
 }
 
 export default function LandingPageClient({ user, profile }: LandingPageProps) {
-  const [activeTab, setActiveTab] = useState<'all' | 'super_admin' | 'admin' | 'client'>('all')
-
   const getDashboardLink = () => {
     if (!profile) return '/auth'
     if (profile.role === 'super_admin') return '/super-admin'
     if (profile.role === 'admin') return '/admin/dashboard'
     return '/client/dashboard'
-  }
-
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return '🛡️ Super Admin'
-      case 'admin':
-        return '🏢 Organization Admin'
-      case 'client':
-        return '👤 Client Portal'
-      default:
-        return role
-    }
   }
 
   return (

@@ -1,7 +1,6 @@
 'use client'
 
 import { supabase } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { LogOut, ShieldCheck } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 
@@ -12,7 +11,6 @@ interface ClientNavbarProps {
 }
 
 export default function ClientNavbar({ email, name, businessName }: ClientNavbarProps) {
-  const router = useRouter()
 
   async function handleSignOut() {
     await supabase.auth.signOut()

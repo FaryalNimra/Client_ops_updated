@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import styles from './auth.module.css'
@@ -10,7 +10,6 @@ import ThemeToggle from '@/components/ThemeToggle'
 function AuthForm() {
   const searchParams = useSearchParams()
   const roleParam = searchParams.get('role')
-  const router = useRouter()
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')

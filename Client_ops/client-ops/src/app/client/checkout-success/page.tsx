@@ -101,6 +101,11 @@ function CheckoutSuccessContent() {
           <p className="text-muted" style={{ fontSize: '0.92rem', marginTop: 6, lineHeight: 1.5 }}>
             Thank you for subscribing to <strong>Landing Page Care</strong>. Your account has been verified and your status is now active across all systems.
           </p>
+          {error && (
+            <div style={{ marginTop: 8, fontSize: '0.85rem', color: '#F59E0B' }}>
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Customer & Account Details */}

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import ThemeToggle from '@/components/ThemeToggle'
-import { Building2, ShieldCheck, User } from 'lucide-react'
+import { Building2, ShieldCheck } from 'lucide-react'
 
 interface AdminTopbarProps {
   role?: 'admin' | 'super_admin'

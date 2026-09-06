@@ -22,7 +22,6 @@ export default async function AdminLayout({
     .maybeSingle()
 
   const profile = rawProfile as { role: string; org_id: string | null } | null
-  const role = profile?.role || user.user_metadata?.role || user.app_metadata?.role
 
   if (profile?.role === 'client') {
     redirect('/client/dashboard')

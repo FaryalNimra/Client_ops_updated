@@ -12,11 +12,6 @@ import {
   ArrowLeft,
   Copy,
   Check,
-  Mail,
-  Phone,
-  Calendar,
-  AlertTriangle,
-  ExternalLink,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 
@@ -68,15 +63,6 @@ function formatDate(dateStr: string | null) {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-}
-
-const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
-  active:      { bg: 'rgba(34,197,94,0.12)', color: '#22C55E', label: 'Active / Paid' },
-  onboarding:  { bg: 'rgba(59,130,246,0.12)', color: '#3B82F6', label: 'Checkout Pending' },
-  lead:        { bg: 'rgba(168,85,247,0.12)', color: '#A855F7', label: 'Lead / In Progress' },
-  past_due:    { bg: 'rgba(239,68,68,0.12)', color: '#EF4444', label: 'Past Due / Failed' },
-  paused:      { bg: 'rgba(245,158,11,0.12)', color: '#F59E0B', label: 'Paused' },
-  churned:     { bg: 'rgba(107,114,128,0.12)', color: '#6B7280', label: 'Churned / Cancelled' },
 }
 
 export default function OrgDetailPage() {
