@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import RequestsPage from '@/app/admin/requests/page'
+import RequestsPageView from '@/components/RequestsPageView'
 
 export default async function OrgRequestsPage({
   params,
@@ -10,7 +10,6 @@ export default async function OrgRequestsPage({
   searchParams?: Promise<{ status?: string }>
 }) {
   const { slug } = await params
-  const sp = searchParams ? await searchParams : {}
-  return <RequestsPage orgSlug={slug} searchParams={sp} />
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  return <RequestsPageView searchParams={resolvedSearchParams} orgSlug={slug} />
 }
-

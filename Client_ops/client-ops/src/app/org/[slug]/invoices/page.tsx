@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import InvoicesPage from '@/app/admin/invoices/page'
+import InvoicesPageView from '@/components/InvoicesPageView'
 
 export default async function OrgInvoicesPage({
   params,
@@ -10,7 +10,6 @@ export default async function OrgInvoicesPage({
   searchParams?: Promise<{ status?: string; month?: string; q?: string }>
 }) {
   const { slug } = await params
-  const sp = searchParams ? await searchParams : {}
-  return <InvoicesPage orgSlug={slug} searchParams={sp} />
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  return <InvoicesPageView searchParams={resolvedSearchParams} orgSlug={slug} />
 }
-
