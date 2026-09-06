@@ -43,8 +43,10 @@ export default async function SuperAdminPage() {
 
   const orgs = (rawOrgs ?? []) as Org[]
 
-  // Per-org stats
+  // Per-org stats and admin profiles
   const orgStats: Record<string, { clients: number; mrr_cents: number }> = {}
+  const orgAdmins: Record<string, { id: string; email: string; full_name: string | null; role: string; created_at: string } | null> = {}
+
   for (const org of orgs) {
     const { count: clients } = await adminClient
       .from('clients')
@@ -57,10 +59,19 @@ export default async function SuperAdminPage() {
       .eq('org_id', org.id)
       .single()
 
+    const { data: adminProfile } = await adminClient
+      .from('profiles')
+      .select('id, email, full_name, role, created_at')
+      .eq('org_id', org.id)
+      .eq('role', 'admin')
+      .maybeSingle()
+
     orgStats[org.id] = {
       clients: clients ?? 0,
       mrr_cents: (mrrData as { mrr_cents?: number } | null)?.mrr_cents ?? 0,
     }
+
+    orgAdmins[org.id] = adminProfile as { id: string; email: string; full_name: string | null; role: string; created_at: string } | null
   }
 
   return (
@@ -68,6 +79,7 @@ export default async function SuperAdminPage() {
       superAdmin={{ name: profile?.full_name || profile?.email || 'Super Admin' }}
       orgs={orgs}
       orgStats={orgStats}
+      orgAdmins={orgAdmins}
     />
   )
 }

@@ -136,23 +136,23 @@ Agency Operations Team`
           </div>
         ) : (
           <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label className="label" htmlFor="reminder-subject">Subject</label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="reminder-subject">Subject</label>
               <input
                 id="reminder-subject"
                 type="text"
-                className="input"
+                className="form-input"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
               />
             </div>
 
-            <div>
-              <label className="label" htmlFor="reminder-body">Email Body (Pre-filled Dunning Template)</label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="reminder-body">Email Body (Pre-filled Dunning Template)</label>
               <textarea
                 id="reminder-body"
-                className="input"
+                className="form-textarea"
                 rows={8}
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}

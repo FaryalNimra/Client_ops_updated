@@ -32,10 +32,11 @@ function makeSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-export default function OnboardWizard({ orgId }: { orgId: string }) {
+export default function OnboardWizard({ orgId, orgSlug }: { orgId: string; orgSlug?: string }) {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [clientId, setClientId] = useState('')
   const [checkoutUrl, setCheckoutUrl] = useState('')
 
@@ -44,6 +45,79 @@ export default function OnboardWizard({ orgId }: { orgId: string }) {
     business_name: '', contact_name: '', email: '',
     phone: '', country: '', vat_id: '', currency: 'EUR', notes: '',
   })
+
+  // Validation functions
+  function validateBusiness() {
+    const newErrors: Record<string, string> = {}
+
+    // Business Name
+    if (!biz.business_name.trim()) {
+      newErrors.business_name = 'Business name is required'
+    }
+
+    // Email
+    const emailTrimmed = biz.email.trim()
+    if (!emailTrimmed) {
+      newErrors.email = 'Email address is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed)) {
+      newErrors.email = 'Please enter a valid email address (e.g. name@company.com)'
+    }
+
+    // Phone (optional, but must be valid format if entered)
+    if (biz.phone.trim()) {
+      const digits = biz.phone.replace(/\D/g, '')
+      const phoneRegex = /^[\+]?[(]?[0-9\s\-().]{6,25}$/
+      if (!phoneRegex.test(biz.phone.trim()) || digits.length < 6) {
+        newErrors.phone = 'Please enter a valid phone number (e.g. +49 30 123456)'
+      }
+    }
+
+    // Monthly Plan
+    if (isNaN(plan_price_cents) || plan_price_cents < 0) {
+      newErrors.plan_price_cents = 'Monthly plan must be 0 or greater'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  function handleBlur(field: string) {
+    if (field === 'business_name') {
+      if (!biz.business_name.trim()) {
+        setErrors(prev => ({ ...prev, business_name: 'Business name is required' }))
+      } else {
+        setErrors(prev => ({ ...prev, business_name: '' }))
+      }
+    } else if (field === 'email') {
+      const emailTrimmed = biz.email.trim()
+      if (!emailTrimmed) {
+        setErrors(prev => ({ ...prev, email: 'Email address is required' }))
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed)) {
+        setErrors(prev => ({ ...prev, email: 'Please enter a valid email address (e.g. name@company.com)' }))
+      } else {
+        setErrors(prev => ({ ...prev, email: '' }))
+      }
+    } else if (field === 'phone') {
+      const phoneTrimmed = biz.phone.trim()
+      if (phoneTrimmed) {
+        const digits = phoneTrimmed.replace(/\D/g, '')
+        const phoneRegex = /^[\+]?[(]?[0-9\s\-().]{6,25}$/
+        if (!phoneRegex.test(phoneTrimmed) || digits.length < 6) {
+          setErrors(prev => ({ ...prev, phone: 'Please enter a valid phone number (e.g. +49 30 123456)' }))
+        } else {
+          setErrors(prev => ({ ...prev, phone: '' }))
+        }
+      } else {
+        setErrors(prev => ({ ...prev, phone: '' }))
+      }
+    } else if (field === 'plan_price_cents') {
+      if (isNaN(plan_price_cents) || plan_price_cents < 0) {
+        setErrors(prev => ({ ...prev, plan_price_cents: 'Monthly plan must be 0 or greater' }))
+      } else {
+        setErrors(prev => ({ ...prev, plan_price_cents: '' }))
+      }
+    }
+  }
 
   // Step 2 — Assets
   const [assets, setAssets] = useState<AssetRow[]>([
@@ -97,20 +171,21 @@ export default function OnboardWizard({ orgId }: { orgId: string }) {
 
   // ── Save business details + create client record ────────
   async function saveBusiness() {
+    if (!validateBusiness()) return
     setLoading(true)
     setError('')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error: dbErr } = await (supabase.from('clients') as any)
       .insert({
         org_id: orgId,
-        business_name: biz.business_name,
-        contact_name: biz.contact_name,
-        email: biz.email,
-        phone: biz.phone,
-        country: biz.country,
-        vat_id: biz.vat_id,
+        business_name: biz.business_name.trim(),
+        contact_name: biz.contact_name.trim(),
+        email: biz.email.trim(),
+        phone: biz.phone.trim(),
+        country: biz.country.trim(),
+        vat_id: biz.vat_id.trim(),
         currency: biz.currency,
-        notes: biz.notes,
+        notes: biz.notes.trim(),
         status: 'onboarding',
         plan_price_cents,
         setup_fee_cents,
@@ -229,61 +304,136 @@ export default function OnboardWizard({ orgId }: { orgId: string }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="grid-2">
               <div className="form-group">
-                <label className="form-label">Business name *</label>
-                <input id="biz-name" className="form-input" value={biz.business_name}
-                  onChange={e => setBiz(p => ({ ...p, business_name: e.target.value }))} placeholder="Acme GmbH" />
+                <label className="form-label" htmlFor="biz-name">Business name *</label>
+                <input
+                  id="biz-name"
+                  className="form-input"
+                  value={biz.business_name}
+                  style={errors.business_name ? { borderColor: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' } : undefined}
+                  onChange={e => {
+                    setBiz(p => ({ ...p, business_name: e.target.value }))
+                    if (errors.business_name) setErrors(p => ({ ...p, business_name: '' }))
+                  }}
+                  onBlur={() => handleBlur('business_name')}
+                  placeholder="Acme GmbH"
+                />
+                {errors.business_name && <span className="form-error">{errors.business_name}</span>}
               </div>
               <div className="form-group">
-                <label className="form-label">Contact name</label>
-                <input id="contact-name" className="form-input" value={biz.contact_name}
-                  onChange={e => setBiz(p => ({ ...p, contact_name: e.target.value }))} placeholder="Jane Smith" />
-              </div>
-            </div>
-            <div className="grid-2">
-              <div className="form-group">
-                <label className="form-label">Email *</label>
-                <input id="client-email" className="form-input" type="email" value={biz.email}
-                  onChange={e => setBiz(p => ({ ...p, email: e.target.value }))} placeholder="billing@acme.de" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Phone</label>
-                <input id="client-phone" className="form-input" type="tel" value={biz.phone}
-                  onChange={e => setBiz(p => ({ ...p, phone: e.target.value }))} placeholder="+49 30 000000" />
-              </div>
-            </div>
-            <div className="grid-2">
-              <div className="form-group">
-                <label className="form-label">Country</label>
-                <input id="client-country" className="form-input" value={biz.country}
-                  onChange={e => setBiz(p => ({ ...p, country: e.target.value }))} placeholder="DE" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">VAT ID</label>
-                <input id="client-vat" className="form-input" value={biz.vat_id}
-                  onChange={e => setBiz(p => ({ ...p, vat_id: e.target.value }))} placeholder="DE123456789" />
+                <label className="form-label" htmlFor="contact-name">Contact name</label>
+                <input
+                  id="contact-name"
+                  className="form-input"
+                  value={biz.contact_name}
+                  onChange={e => setBiz(p => ({ ...p, contact_name: e.target.value }))}
+                  placeholder="Jane Smith"
+                />
               </div>
             </div>
             <div className="grid-2">
               <div className="form-group">
-                <label className="form-label">Currency</label>
-                <select id="client-currency" className="form-select" value={biz.currency}
-                  onChange={e => setBiz(p => ({ ...p, currency: e.target.value }))}>
+                <label className="form-label" htmlFor="client-email">Email *</label>
+                <input
+                  id="client-email"
+                  className="form-input"
+                  type="email"
+                  value={biz.email}
+                  style={errors.email ? { borderColor: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' } : undefined}
+                  onChange={e => {
+                    setBiz(p => ({ ...p, email: e.target.value }))
+                    if (errors.email) setErrors(p => ({ ...p, email: '' }))
+                  }}
+                  onBlur={() => handleBlur('email')}
+                  placeholder="billing@acme.de"
+                />
+                {errors.email && <span className="form-error">{errors.email}</span>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="client-phone">Phone</label>
+                <input
+                  id="client-phone"
+                  className="form-input"
+                  type="tel"
+                  value={biz.phone}
+                  style={errors.phone ? { borderColor: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' } : undefined}
+                  onChange={e => {
+                    setBiz(p => ({ ...p, phone: e.target.value }))
+                    if (errors.phone) setErrors(p => ({ ...p, phone: '' }))
+                  }}
+                  onBlur={() => handleBlur('phone')}
+                  placeholder="+49 30 000000"
+                />
+                {errors.phone && <span className="form-error">{errors.phone}</span>}
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label" htmlFor="client-country">Country</label>
+                <input
+                  id="client-country"
+                  className="form-input"
+                  value={biz.country}
+                  onChange={e => setBiz(p => ({ ...p, country: e.target.value }))}
+                  placeholder="DE"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="client-vat">VAT ID</label>
+                <input
+                  id="client-vat"
+                  className="form-input"
+                  value={biz.vat_id}
+                  onChange={e => setBiz(p => ({ ...p, vat_id: e.target.value }))}
+                  placeholder="DE123456789"
+                />
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label" htmlFor="client-currency">Currency</label>
+                <select
+                  id="client-currency"
+                  className="form-select"
+                  value={biz.currency}
+                  onChange={e => setBiz(p => ({ ...p, currency: e.target.value }))}
+                >
                   <option value="EUR">EUR — Euro</option>
                   <option value="USD">USD — Dollar</option>
                   <option value="GBP">GBP — Pound</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Monthly plan (cents)</label>
-                <input id="plan-price" className="form-input" type="number" value={plan_price_cents}
-                  onChange={e => setPlanPriceCents(Number(e.target.value))} step={100} />
-                <span className="form-hint">{(plan_price_cents / 100).toFixed(2)} {biz.currency}</span>
+                <label className="form-label" htmlFor="plan-price">Monthly plan (cents)</label>
+                <input
+                  id="plan-price"
+                  className="form-input"
+                  type="number"
+                  min="0"
+                  value={plan_price_cents}
+                  style={errors.plan_price_cents ? { borderColor: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' } : undefined}
+                  onChange={e => {
+                    setPlanPriceCents(Number(e.target.value))
+                    if (errors.plan_price_cents) setErrors(p => ({ ...p, plan_price_cents: '' }))
+                  }}
+                  onBlur={() => handleBlur('plan_price_cents')}
+                  step={100}
+                />
+                {errors.plan_price_cents ? (
+                  <span className="form-error">{errors.plan_price_cents}</span>
+                ) : (
+                  <span className="form-hint">{(plan_price_cents / 100).toFixed(2)} {biz.currency}</span>
+                )}
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Notes (internal)</label>
-              <textarea id="client-notes" className="form-textarea" value={biz.notes}
-                onChange={e => setBiz(p => ({ ...p, notes: e.target.value }))} rows={2} />
+              <label className="form-label" htmlFor="client-notes">Notes (internal)</label>
+              <textarea
+                id="client-notes"
+                className="form-textarea"
+                value={biz.notes}
+                onChange={e => setBiz(p => ({ ...p, notes: e.target.value }))}
+                rows={2}
+              />
             </div>
           </div>
 
@@ -291,7 +441,7 @@ export default function OnboardWizard({ orgId }: { orgId: string }) {
             <button
               id="step-1-next"
               className="btn btn-primary"
-              disabled={loading || !biz.business_name || !biz.email}
+              disabled={loading}
               onClick={saveBusiness}
             >
               {loading ? <Loader2 size={16} className="spin" /> : null}
@@ -525,47 +675,49 @@ export default function OnboardWizard({ orgId }: { orgId: string }) {
               background: 'var(--color-surface-2)',
               border: '1px solid rgba(232, 68, 10, 0.35)',
               borderRadius: 'var(--radius-lg)',
-              padding: 20,
+              padding: 24,
               marginBottom: 24,
-              textAlign: 'left',
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
+              alignItems: 'center',
+              gap: 16,
             }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                💳 Stripe Payment Checkout Link:
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                💳 Stripe Payment Checkout
               </div>
 
-              <div style={{
-                background: 'var(--color-bg)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 8,
-                padding: '12px 16px',
-                fontFamily: 'monospace',
-                fontSize: '0.85rem',
-                color: 'var(--color-text)',
-                wordBreak: 'break-all',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}>
-                <span>{checkoutUrl}</span>
+              {/* Direct Go to Stripe Button */}
+              <a
+                href={checkoutUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-lg"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  gap: 10,
+                  boxShadow: '0 4px 14px rgba(232, 68, 10, 0.4)',
+                }}
+              >
+                <LinkIcon size={18} /> Go to Stripe Checkout ↗
+              </a>
+
+              {/* Action buttons: Copy, WhatsApp, Email */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
                 <button
                   type="button"
                   onClick={async () => {
                     await navigator.clipboard.writeText(checkoutUrl)
                     alert('Payment link copied to clipboard! ✅')
                   }}
-                  className="btn btn-primary btn-sm"
-                  style={{ flexShrink: 0, gap: 6 }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ gap: 6 }}
                 >
                   <Copy size={14} /> Copy Link
                 </button>
-              </div>
 
-              {/* Quick WhatsApp / Email share */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
                 <a
                   href={`https://wa.me/${biz.phone ? biz.phone.replace(/[^0-9]/g, '') : ''}?text=${encodeURIComponent(
                     `Hello ${biz.contact_name || biz.business_name},\n\nHere is your secure checkout link for ${biz.business_name}:\n${checkoutUrl}\n\nPlease complete payment to activate your monthly care plan.`
@@ -587,16 +739,6 @@ export default function OnboardWizard({ orgId }: { orgId: string }) {
                 >
                   <Mail size={14} /> Send via Email
                 </a>
-
-                <a
-                  href={checkoutUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-ghost btn-sm"
-                  style={{ gap: 6 }}
-                >
-                  <LinkIcon size={14} /> Open Checkout ↗
-                </a>
               </div>
             </div>
           )}
@@ -604,7 +746,7 @@ export default function OnboardWizard({ orgId }: { orgId: string }) {
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a
               id="view-new-client"
-              href={`/admin/clients/${clientId}`}
+              href={orgSlug ? `/org/${orgSlug}/clients/${clientId}` : `/admin/clients/${clientId}`}
               className="btn btn-primary"
             >
               View Client Record →

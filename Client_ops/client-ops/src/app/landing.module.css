@@ -1,6 +1,6 @@
 /* ============================================================
    ClientOps — Landing Page Styles
-   Deep Space Black (#080808) + Radiant Flame Orange (#E8440A)
+   Full Light / Dark Mode support with Theme Variables
    ============================================================ */
 
 .pageWrapper {
@@ -10,6 +10,7 @@
   overflow-x: hidden;
   position: relative;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 /* ── Background Glow & Tech Grid ── */
@@ -17,10 +18,11 @@
   position: absolute;
   inset: 0;
   background-image: 
-    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    radial-gradient(circle, var(--color-border) 1px, transparent 1px);
   background-size: 32px 32px;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.7;
 }
 
 .ambientGlowTop {
@@ -30,7 +32,7 @@
   transform: translateX(-50%);
   width: 900px;
   height: 550px;
-  background: radial-gradient(circle, rgba(232, 68, 10, 0.18) 0%, rgba(232, 68, 10, 0.03) 50%, transparent 75%);
+  background: radial-gradient(circle, rgba(232, 68, 10, 0.15) 0%, rgba(232, 68, 10, 0.02) 50%, transparent 75%);
   filter: blur(80px);
   pointer-events: none;
   z-index: 0;
@@ -55,9 +57,19 @@
   z-index: 100;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba(8, 8, 8, 0.75);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.3s ease;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+:global([data-theme="dark"]) .navbar {
+  background: rgba(17, 17, 17, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme="light"]) .navbar {
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .navContainer {
@@ -100,7 +112,7 @@
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .brandBadge {
@@ -125,13 +137,13 @@
 }
 
 .navLink:hover {
-  color: #ffffff;
+  color: var(--color-text);
 }
 
 .navActions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 /* ── Hero Section ── */
@@ -152,8 +164,8 @@
   align-items: center;
   gap: 8px;
   padding: 6px 16px;
-  background: rgba(232, 68, 10, 0.1);
-  border: 1px solid rgba(232, 68, 10, 0.35);
+  background: var(--color-primary-dim);
+  border: 1px solid var(--color-border-active);
   border-radius: 100px;
   font-size: 0.82rem;
   font-weight: 600;
@@ -181,13 +193,13 @@
   font-weight: 900;
   line-height: 1.12;
   letter-spacing: -0.03em;
-  color: #ffffff;
+  color: var(--color-text);
   max-width: 900px;
   margin-bottom: 24px;
 }
 
 .titleHighlight {
-  background: linear-gradient(135deg, #FF7A45 0%, #E8440A 50%, #FFB088 100%);
+  background: linear-gradient(135deg, #FF7A45 0%, #E8440A 50%, #FF6B35 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -222,6 +234,7 @@
   box-shadow: 0 4px 20px rgba(232, 68, 10, 0.45);
   transition: all 0.25s ease;
   border: 1px solid rgba(255, 255, 255, 0.15);
+  text-decoration: none;
 }
 
 .primaryBtn:hover {
@@ -234,25 +247,26 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #e5e5e5;
+  background: var(--color-surface-2);
+  color: var(--color-text);
   font-weight: 600;
   font-size: 0.95rem;
   padding: 14px 24px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
   transition: all 0.2s ease;
+  text-decoration: none;
 }
 
 .secondaryBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-active);
+  color: var(--color-primary);
 }
 
 /* ── User Active Session Banner ── */
 .activeSessionBanner {
-  background: rgba(34, 197, 94, 0.08);
+  background: var(--color-success-dim);
   border: 1px solid rgba(34, 197, 94, 0.3);
   padding: 12px 20px;
   border-radius: 12px;
@@ -261,13 +275,13 @@
   gap: 12px;
   margin-bottom: 24px;
   font-size: 0.9rem;
-  color: #4ADE80;
+  color: var(--color-success);
 }
 
 .activeSessionBtn {
   margin-left: auto;
-  background: #22C55E;
-  color: #000;
+  background: var(--color-success);
+  color: #fff;
   font-weight: 700;
   padding: 6px 14px;
   border-radius: 6px;
@@ -306,7 +320,7 @@
   font-size: clamp(1.8rem, 3.5vw, 2.5rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--color-text);
   margin-bottom: 12px;
 }
 
@@ -332,13 +346,14 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .roleCard:hover {
   transform: translateY(-6px);
-  border-color: rgba(232, 68, 10, 0.4);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(232, 68, 10, 0.12);
+  border-color: var(--color-border-active);
+  box-shadow: var(--shadow-lg);
 }
 
 .cardTopAccent {
@@ -346,7 +361,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 4px;
 }
 
 .superAdminAccent {
@@ -412,14 +427,16 @@
   margin-bottom: 6px;
 }
 
-.badgeSuper { background: rgba(232, 68, 10, 0.2); color: #FF7A45; }
-.badgeAdmin { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
-.badgeClient { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+.badgeSuper { background: rgba(232, 68, 10, 0.15); color: #FF7A45; }
+.badgeAdmin { background: rgba(59, 130, 246, 0.15); color: #2563EB; }
+:global([data-theme="dark"]) .badgeAdmin { color: #60A5FA; }
+.badgeClient { background: rgba(16, 185, 129, 0.15); color: #16A34A; }
+:global([data-theme="dark"]) .badgeClient { color: #34D399; }
 
 .roleName {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text);
 }
 
 .roleSummary {
@@ -443,7 +460,7 @@
   align-items: flex-start;
   gap: 10px;
   font-size: 0.85rem;
-  color: #D1D5DB;
+  color: var(--color-text);
   line-height: 1.4;
 }
 
@@ -460,8 +477,10 @@
 }
 
 .checkSuper { background: rgba(232, 68, 10, 0.2); color: #FF7A45; }
-.checkAdmin { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
-.checkClient { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+.checkAdmin { background: rgba(59, 130, 246, 0.2); color: #2563EB; }
+:global([data-theme="dark"]) .checkAdmin { color: #60A5FA; }
+.checkClient { background: rgba(16, 185, 129, 0.2); color: #16A34A; }
+:global([data-theme="dark"]) .checkClient { color: #34D399; }
 
 .roleActionBtn {
   display: flex;
@@ -490,9 +509,10 @@
 
 .btnAdmin {
   background: rgba(59, 130, 246, 0.15);
-  color: #60A5FA;
+  color: #2563EB;
   border: 1px solid rgba(59, 130, 246, 0.35);
 }
+:global([data-theme="dark"]) .btnAdmin { color: #60A5FA; }
 .btnAdmin:hover {
   background: #2563EB;
   color: #ffffff;
@@ -501,9 +521,10 @@
 
 .btnClient {
   background: rgba(16, 185, 129, 0.15);
-  color: #34D399;
+  color: #16A34A;
   border: 1px solid rgba(16, 185, 129, 0.35);
 }
+:global([data-theme="dark"]) .btnClient { color: #34D399; }
 .btnClient:hover {
   background: #059669;
   color: #ffffff;
@@ -531,30 +552,32 @@
   border-radius: 16px;
   padding: 24px;
   transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .featureCard:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  background: var(--color-surface-2);
+  border-color: var(--color-border-active);
+  background: var(--color-surface-hover);
 }
 
 .featureIcon {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
   margin-bottom: 16px;
+  color: var(--color-primary);
 }
 
 .featureTitle {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text);
   margin-bottom: 8px;
 }
 
@@ -586,6 +609,7 @@
   border-radius: 16px;
   padding: 28px 24px;
   position: relative;
+  box-shadow: var(--shadow-sm);
 }
 
 .stepNumber {
@@ -595,8 +619,8 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: rgba(232, 68, 10, 0.15);
-  color: var(--color-primary-light);
+  background: var(--color-primary-dim);
+  color: var(--color-primary);
   font-weight: 800;
   font-size: 0.9rem;
   margin-bottom: 16px;
@@ -605,7 +629,7 @@
 .stepTitle {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text);
   margin-bottom: 8px;
 }
 
@@ -625,18 +649,28 @@
 }
 
 .ctaBox {
-  background: linear-gradient(135deg, rgba(232, 68, 10, 0.15) 0%, rgba(18, 18, 18, 0.9) 100%);
-  border: 1px solid rgba(232, 68, 10, 0.4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 24px;
   padding: 48px 32px;
   text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(232, 68, 10, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+:global([data-theme="dark"]) .ctaBox {
+  background: linear-gradient(135deg, rgba(232, 68, 10, 0.15) 0%, rgba(18, 18, 18, 0.95) 100%);
+  border: 1px solid rgba(232, 68, 10, 0.4);
+}
+
+:global([data-theme="light"]) .ctaBox {
+  background: linear-gradient(135deg, rgba(232, 68, 10, 0.08) 0%, #FFFFFF 100%);
+  border: 1px solid rgba(232, 68, 10, 0.3);
 }
 
 .ctaTitle {
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text);
   margin-bottom: 12px;
 }
 
@@ -649,11 +683,12 @@
 
 /* ── Footer ── */
 .footer {
-  border-top: 1px solid var(--color-border-subtle);
-  background: #050505;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
   padding: 40px 24px;
   position: relative;
   z-index: 1;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .footerContainer {
@@ -682,7 +717,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 .statusDot {

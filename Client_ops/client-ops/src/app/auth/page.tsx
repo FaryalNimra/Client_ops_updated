@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import styles from './auth.module.css'
+import ThemeToggle from '@/components/ThemeToggle'
 
 function AuthForm() {
   const searchParams = useSearchParams()
@@ -17,10 +18,7 @@ function AuthForm() {
   const [error, setError]       = useState('')
   const [showPass, setShowPass] = useState(false)
 
-  // Automatically clear any old/active session when visiting the login page
-  useEffect(() => {
-    supabase.auth.signOut()
-  }, [])
+
 
   const getRoleHeader = () => {
     if (roleParam === 'super_admin') {
@@ -76,39 +74,59 @@ function AuthForm() {
 
     // Role-based smart routing: directly send user to their portal
     if (authData?.user) {
-      const { data: rawProfile } = await supabase
-        .from('profiles')
-        .select('role, org_id')
-        .eq('id', authData.user.id)
-        .single()
-
-      const profile = rawProfile as { role?: string; org_id?: string | null } | null
-      const userRole = profile?.role || authData.user.user_metadata?.role || authData.user.app_metadata?.role || roleParam
+      const user = authData.user
+      const userRole = user.user_metadata?.role || user.app_metadata?.role || roleParam
+      const metaSlug = user.user_metadata?.org_slug || user.app_metadata?.org_slug
 
       if (userRole === 'super_admin') {
         window.location.href = '/super-admin'
         return
-      } else if (userRole === 'client') {
+      }
+      
+      if (userRole === 'client') {
         window.location.href = '/client/dashboard'
         return
-      } else {
-        // Admin: if org_id is present, get custom slug and go to /org/[slug]/dashboard
+      }
+
+      // If org_slug is available directly in token metadata, redirect instantly
+      if (metaSlug) {
+        window.location.href = `/org/${metaSlug}/dashboard`
+        return
+      }
+
+      // Otherwise, quick lookup with Promise.race timeout
+      try {
+        const profilePromise = supabase
+          .from('profiles')
+          .select('role, org_id')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ data: null }), 1200))
+        const res: any = await Promise.race([profilePromise, timeoutPromise])
+        const profile = res?.data
+
         if (profile?.org_id) {
-          const { data: rawOrg } = await supabase
+          const orgPromise = supabase
             .from('organizations')
             .select('slug')
             .eq('id', profile.org_id)
-            .single()
-          
-          const org = rawOrg as { slug?: string } | null
+            .maybeSingle()
+
+          const orgTimeout = new Promise((resolve) => setTimeout(() => resolve({ data: null }), 1200))
+          const orgRes: any = await Promise.race([orgPromise, orgTimeout])
+          const org = orgRes?.data
           if (org?.slug) {
             window.location.href = `/org/${org.slug}/dashboard`
             return
           }
         }
-        window.location.href = '/admin/dashboard'
-        return
+      } catch (err) {
+        console.error('Profile route lookup error:', err)
       }
+
+      window.location.href = '/admin/dashboard'
+      return
     }
 
     // Fallback if roleParam is known
@@ -145,7 +163,7 @@ function AuthForm() {
           >
             ← Back to Home
           </Link>
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-faint)' }}>ClientOps Portal</span>
+          <ThemeToggle size="sm" />
         </div>
 
         <div className={styles.logo}>
@@ -165,8 +183,9 @@ function AuthForm() {
               letterSpacing: '0.05em',
               padding: '2px 8px',
               borderRadius: 4,
-              background: roleParam === 'super_admin' ? 'rgba(232, 68, 10, 0.18)' : roleParam === 'admin' ? 'rgba(59, 130, 246, 0.18)' : 'rgba(255, 255, 255, 0.08)',
-              color: roleParam === 'super_admin' ? '#FF7A45' : roleParam === 'admin' ? '#60A5FA' : '#E5E7EB'
+              background: roleParam === 'super_admin' ? 'rgba(232, 68, 10, 0.18)' : roleParam === 'admin' ? 'rgba(59, 130, 246, 0.18)' : 'var(--color-surface-2)',
+              color: roleParam === 'super_admin' ? '#FF7A45' : roleParam === 'admin' ? 'var(--color-info)' : 'var(--color-text)',
+              border: '1px solid var(--color-border)',
             }}>
               {roleInfo.badge}
             </span>

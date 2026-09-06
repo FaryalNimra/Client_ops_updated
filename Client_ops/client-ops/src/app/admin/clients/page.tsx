@@ -1,9 +1,9 @@
-import { createSupabaseServer } from '@/lib/supabase/server'
+import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-import { ExternalLink, Plus } from 'lucide-react'
+import { ExternalLink, Plus, Search, Users } from 'lucide-react'
 
 function StatusBadge({ status }: { status: string }) {
   return <span className={`badge badge-${status}`}>{status.replace(/_/g, ' ')}</span>
@@ -19,30 +19,77 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export default async function ClientsPage({
-  searchParams,
-}: {
-  searchParams: { status?: string; q?: string }
-}) {
+function getInitials(name: string) {
+  if (!name) return 'CO'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #FF5722 0%, #FF8A65 100%)',
+  'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
+  'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)',
+  'linear-gradient(135deg, #059669 0%, #34D399 100%)',
+  'linear-gradient(135deg, #D97706 0%, #FBBF24 100%)',
+  'linear-gradient(135deg, #DB2777 0%, #F472B6 100%)',
+  'linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)',
+]
+
+function getAvatarGradient(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  const index = Math.abs(hash) % AVATAR_GRADIENTS.length
+  return AVATAR_GRADIENTS[index]
+}
+
+export default async function ClientsPage(props: {
+  searchParams?: Promise<{ status?: string; q?: string }> | { status?: string; q?: string }
+  params?: Promise<{ slug?: string }> | { slug?: string }
+  orgSlug?: string
+} = {}) {
+  const searchParams = props.searchParams ? await props.searchParams : {}
+  const params = props.params ? await props.params : {}
+  const currentSlug = props.orgSlug || (params as { slug?: string })?.slug
+
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  const { data: rawProfile } = await supabase
+  const adminClient = createSupabaseAdmin()
+
+  const { data: rawProfile } = await adminClient
     .from('profiles')
     .select('role, org_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   const profile = rawProfile as { role: string; org_id: string | null } | null
 
-  let query = supabase
+  let orgId = profile?.org_id
+
+  if (currentSlug && (!orgId || profile?.role === 'super_admin')) {
+    const { data: orgData } = await adminClient
+      .from('organizations')
+      .select('id')
+      .eq('slug', currentSlug)
+      .maybeSingle()
+    if (orgData?.id) {
+      orgId = orgData.id
+    }
+  }
+
+  const basePrefix = currentSlug ? `/org/${currentSlug}` : '/admin'
+
+  let query = adminClient
     .from('clients')
     .select('id, business_name, contact_name, email, status, plan_price_cents, currency, purchase_date, created_at, country, stripe_customer_id, stripe_subscription_id')
     .order('created_at', { ascending: false })
 
-  if (profile?.org_id) {
-    query = query.eq('org_id', profile.org_id)
+  if (orgId) {
+    query = query.eq('org_id', orgId)
   }
 
   if (searchParams.status) query = query.eq('status', searchParams.status as never)
@@ -56,28 +103,27 @@ export default async function ClientsPage({
     <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Clients</h1>
-          <p className="page-subtitle">{clients?.length ?? 0} records</p>
+          <h1 className="page-title">Clients Directory</h1>
+          <p className="page-subtitle">{clients?.length ?? 0} total client record{clients?.length !== 1 ? 's' : ''}</p>
         </div>
-        <Link href="./onboard" id="onboard-btn" className="btn btn-primary">
-          <Plus size={16} /> Onboard client
+        <Link href={`${basePrefix}/onboard`} id="onboard-btn" className="btn btn-primary">
+          <Plus size={16} />
+          <span>Onboard client</span>
         </Link>
       </div>
 
       <div className="page-body">
         {/* Filters */}
-        <div className="flex gap-3 flex-wrap items-center">
-          <div className="search-bar">
-            <svg className="search-bar-icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-            </svg>
-            <form>
+        <div className="flex gap-3 flex-wrap items-center justify-between">
+          <div className="search-bar" style={{ minWidth: 280 }}>
+            <Search className="search-bar-icon" size={16} />
+            <form style={{ width: '100%' }}>
               <input
                 id="client-search"
                 name="q"
                 type="search"
                 className="form-input"
-                placeholder="Search business name…"
+                placeholder="Search by company or client name…"
                 defaultValue={searchParams.q ?? ''}
               />
             </form>
@@ -85,7 +131,7 @@ export default async function ClientsPage({
 
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <Link
-              href="./clients"
+              href={`${basePrefix}/clients`}
               id="filter-all"
               className={`btn btn-sm ${!searchParams.status ? 'btn-primary' : 'btn-secondary'}`}
             >
@@ -94,7 +140,7 @@ export default async function ClientsPage({
             {STATUSES.map(s => (
               <Link
                 key={s}
-                href={`./clients?status=${s}`}
+                href={`${basePrefix}/clients?status=${s}`}
                 id={`filter-${s}`}
                 className={`btn btn-sm ${searchParams.status === s ? 'btn-primary' : 'btn-secondary'}`}
               >
@@ -104,74 +150,113 @@ export default async function ClientsPage({
           </div>
         </div>
 
-        {/* Table */}
-        <div className="table-container">
-          {clients && clients.length > 0 ? (
-            <table className="table" id="clients-table">
-              <thead>
-                <tr>
-                  <th>Business</th>
-                  <th>Contact</th>
-                  <th>Stage</th>
-                  <th>Payment Status</th>
-                  <th>Plan</th>
-                  <th>Country</th>
-                  <th>Since</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(clients as unknown as Record<string, unknown>[])?.map(client => {
-                  const isPaid = client.status === 'active' || !!client.stripe_subscription_id
-                  return (
-                    <tr key={String(client.id)} id={`client-row-${String(client.id)}`}>
-                      <td>
-                        <Link href={`./clients/${String(client.id)}`} style={{ fontWeight: 600 }}>
-                          {String(client.business_name)}
-                        </Link>
-                      </td>
-                      <td className="text-muted">{client.contact_name ? String(client.contact_name) : '—'}</td>
-                      <td><StatusBadge status={String(client.status)} /></td>
-                      <td>
-                        <Link href={`./clients/${String(client.id)}`} style={{ textDecoration: 'none' }}>
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: 99,
-                            background: isPaid ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-                            color: isPaid ? '#22C55E' : '#F59E0B',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}>
-                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: isPaid ? '#22C55E' : '#F59E0B' }} />
-                            {isPaid ? 'Paid & Active' : 'Unpaid (Send Link ↗)'}
-                          </span>
-                        </Link>
-                      </td>
-                      <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-                        {formatCents(client.plan_price_cents as number | null, String(client.currency ?? 'EUR'))}
-                      </td>
-                      <td className="text-muted">{client.country ? String(client.country) : '—'}</td>
-                      <td className="text-muted">{formatDate(client.created_at as string | null)}</td>
-                      <td>
-                        <Link href={`./clients/${String(client.id)}`} id={`open-${String(client.id)}`} className="btn btn-ghost btn-sm" title="View & Manage Client">
-                          <ExternalLink size={14} />
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty-state">
-              <p className="text-muted">No clients found.{' '}
-                <Link href="/admin/onboard" className="text-primary">Onboard your first →</Link>
-              </p>
-            </div>
-          )}
+        {/* Table Card */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+            {clients && clients.length > 0 ? (
+              <table className="table" id="clients-table">
+                <thead>
+                  <tr>
+                    <th>Business</th>
+                    <th>Contact</th>
+                    <th>Stage</th>
+                    <th>Payment Status</th>
+                    <th>Plan</th>
+                    <th>Country</th>
+                    <th>Since</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(clients as unknown as Record<string, unknown>[])?.map(client => {
+                    const isPaid = client.status === 'active' || !!client.stripe_subscription_id
+                    const businessName = String(client.business_name || 'Client')
+                    return (
+                      <tr key={String(client.id)} id={`client-row-${String(client.id)}`}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 10,
+                                background: getAvatarGradient(businessName),
+                                color: '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.78rem',
+                                fontWeight: 800,
+                                flexShrink: 0,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                              }}
+                            >
+                              {getInitials(businessName)}
+                            </div>
+                            <div>
+                              <Link
+                                href={`${basePrefix}/clients/${String(client.id)}`}
+                                style={{ fontWeight: 600, color: 'var(--color-text)' }}
+                              >
+                                {businessName}
+                              </Link>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-muted">{client.contact_name ? String(client.contact_name) : '—'}</td>
+                        <td><StatusBadge status={String(client.status)} /></td>
+                        <td>
+                          <Link href={`${basePrefix}/clients/${String(client.id)}`} style={{ textDecoration: 'none' }}>
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: 99,
+                              background: isPaid ? 'var(--color-success-dim)' : 'var(--color-warning-dim)',
+                              color: isPaid ? 'var(--color-success)' : 'var(--color-warning)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                            }}>
+                              <span style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: '50%',
+                                background: isPaid ? 'var(--color-success)' : 'var(--color-warning)',
+                              }} />
+                              {isPaid ? 'Paid & Active' : 'Unpaid (Send Link ↗)'}
+                            </span>
+                          </Link>
+                        </td>
+                        <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                          {formatCents(client.plan_price_cents as number | null, String(client.currency ?? 'EUR'))}
+                        </td>
+                        <td className="text-muted">{client.country ? String(client.country) : '—'}</td>
+                        <td className="text-muted">{formatDate(client.created_at as string | null)}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <Link
+                            href={`${basePrefix}/clients/${String(client.id)}`}
+                            id={`open-${String(client.id)}`}
+                            className="btn btn-ghost btn-sm"
+                            title="View & Manage Client"
+                          >
+                            <ExternalLink size={14} />
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state">
+                <Users className="empty-state-icon" />
+                <p className="text-muted">No clients found.{' '}
+                  <Link href={`${basePrefix}/onboard`} className="text-primary font-semibold">Onboard your first →</Link>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -29,12 +29,41 @@ export async function POST(request: Request) {
        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Create user in Auth
+    // Validation: Only one admin allowed per organization
+    const { data: existingAdmin, error: checkError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('org_id', org_id)
+      .eq('role', 'admin')
+      .maybeSingle()
+
+    if (checkError) {
+      return NextResponse.json({ error: checkError.message }, { status: 500 })
+    }
+
+    if (existingAdmin) {
+      return NextResponse.json(
+        { error: 'An admin already exists for this organization. Only 1 admin per organization is allowed.' },
+        { status: 400 }
+      )
+    }
+
+    // Fetch organization info (slug)
+    const { data: orgData } = await supabaseAdmin
+      .from('organizations')
+      .select('slug, name')
+      .eq('id', org_id)
+      .single()
+
+    const orgSlug = (orgData as { slug?: string } | null)?.slug || ''
+
+    // Create user in Auth with org_id and org_slug in metadata
     const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name, role: 'admin' }
+      user_metadata: { full_name, role: 'admin', org_id, org_slug: orgSlug },
+      app_metadata: { role: 'admin', org_id, org_slug: orgSlug }
     })
 
     if (createError) {

@@ -3,13 +3,23 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import type { Database } from '@/types/database'
+import ThemeToggle from '@/components/ThemeToggle'
 
 type Org = Database['public']['Tables']['organizations']['Row']
+
+interface AdminProfile {
+  id: string
+  email: string
+  full_name: string | null
+  role: string
+  created_at: string
+}
 
 interface Props {
   superAdmin: { name: string }
   orgs: Org[]
   orgStats: Record<string, { clients: number; mrr_cents: number }>
+  orgAdmins?: Record<string, AdminProfile | null>
 }
 
 function formatCents(cents: number, currency = 'EUR') {
@@ -20,9 +30,10 @@ function makeSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgStats: initialStats }: Props) {
+export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgStats: initialStats, orgAdmins: initialAdmins }: Props) {
   const [orgs, setOrgs] = useState(initialOrgs)
   const [orgStats, setOrgStats] = useState(initialStats)
+  const [orgAdmins, setOrgAdmins] = useState<Record<string, AdminProfile | null>>(initialAdmins ?? {})
 
   // ── Create Org modal state ──
   const [showOrgModal, setShowOrgModal] = useState(false)
@@ -37,6 +48,14 @@ export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgSta
   const [adminLoading, setAdminLoading] = useState(false)
   const [adminError, setAdminError] = useState('')
   const [adminSuccess, setAdminSuccess] = useState('')
+
+  // ── Manage Org Modal state ──
+  const [showManageModal, setShowManageModal] = useState(false)
+  const [manageOrg, setManageOrg] = useState<Org | null>(null)
+  const [showEditAdmin, setShowEditAdmin] = useState(false)
+  const [editAdminForm, setEditAdminForm] = useState({ full_name: '', password: '' })
+  const [editAdminLoading, setEditAdminLoading] = useState(false)
+  const [removeAdminLoading, setRemoveAdminLoading] = useState(false)
 
   // ── Suspend Org state ──
   const [suspendLoading, setSuspendLoading] = useState<string | null>(null)
@@ -92,8 +111,59 @@ export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgSta
       setAdminError(json.error || 'Something went wrong')
     } else {
       setAdminSuccess(`Admin created!\nEmail: ${adminForm.email}\nPassword: ${adminForm.password}`)
+      if (json.user) {
+        setOrgAdmins(prev => ({
+          ...prev,
+          [adminOrgId]: {
+            id: json.user.id,
+            email: adminForm.email,
+            full_name: adminForm.full_name,
+            role: 'admin',
+            created_at: new Date().toISOString(),
+          }
+        }))
+      }
     }
     setAdminLoading(false)
+  }
+
+  // ── Remove Admin ──
+  async function handleRemoveAdmin(orgId: string, adminId: string) {
+    setRemoveAdminLoading(true)
+    const res = await fetch('/api/super-admin/remove-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_id: adminId, org_id: orgId }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      showToast(`❌ ${json.error || 'Failed to remove admin'}`)
+    } else {
+      setOrgAdmins(prev => ({ ...prev, [orgId]: null }))
+      showToast('🗑️ Admin account removed successfully.')
+    }
+    setRemoveAdminLoading(false)
+  }
+
+  // ── Update Admin ──
+  async function handleUpdateAdmin(orgId: string, adminId: string, full_name: string, password?: string) {
+    setEditAdminLoading(true)
+    const res = await fetch('/api/super-admin/update-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_id: adminId, org_id: orgId, full_name, password }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      showToast(`❌ ${json.error || 'Failed to update admin'}`)
+    } else {
+      if (json.admin) {
+        setOrgAdmins(prev => ({ ...prev, [orgId]: json.admin }))
+      }
+      setShowEditAdmin(false)
+      showToast('✅ Admin details updated!')
+    }
+    setEditAdminLoading(false)
   }
 
   // ── Suspend / Unsuspend Org ──
@@ -149,10 +219,11 @@ export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgSta
             }}>SUPER ADMIN</span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
             {superAdmin.name}
           </span>
+          <ThemeToggle size="sm" />
           <button
             onClick={handleLogout}
             style={{
@@ -180,39 +251,29 @@ export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgSta
           <button
             id="create-org-btn"
             onClick={() => setShowOrgModal(true)}
-            style={{
-              background: 'var(--color-primary)', color: '#fff', border: 'none',
-              padding: '10px 20px', borderRadius: 10, fontWeight: 600, cursor: 'pointer',
-              fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8,
-            }}
+            className="btn btn-primary"
           >
             + New Organization
           </button>
         </div>
 
         {/* ── Stats ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
           {[
             { label: 'Organizations', value: orgs.length, sub: 'Total active orgs' },
             { label: 'Total Clients', value: totalClients, sub: 'Across all orgs' },
-            { label: 'Total MRR', value: formatCents(totalMRR), sub: 'Monthly recurring revenue' },
+            { label: 'Total MRR', value: formatCents(totalMRR), sub: 'Monthly recurring revenue', highlight: true },
           ].map((s, i) => (
-            <div key={i} style={{
-              background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-              borderRadius: 14, padding: '20px 24px',
-            }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0 4px', color: 'var(--color-text)' }}>{s.value}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{s.sub}</div>
+            <div key={i} className="stat-card">
+              <div className="stat-card-label">{s.label}</div>
+              <div className="stat-card-value" style={{ color: s.highlight ? 'var(--color-primary)' : 'var(--color-text)' }}>{s.value}</div>
+              <div className="stat-card-sub">{s.sub}</div>
             </div>
           ))}
         </div>
 
         {/* ── Orgs Table ── */}
-        <div style={{
-          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-          borderRadius: 14, overflow: 'hidden',
-        }}>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700 }}>
             Organizations
           </div>
@@ -222,83 +283,89 @@ export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgSta
               No organizations yet. Create your first one!
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  {['Organization', 'Slug', 'Clients', 'MRR', 'Currency', 'Status', 'Actions'].map(h => (
-                    <th key={h} style={{
-                      padding: '12px 20px', textAlign: 'left', fontSize: '0.75rem',
-                      color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase',
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {orgs.map(org => {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const isSuspended = !!(org as any).suspended
-                  return (
-                    <tr key={org.id} style={{
-                      borderBottom: '1px solid var(--color-border-subtle)',
-                      opacity: isSuspended ? 0.7 : 1,
-                    }}>
-                      <td style={{ padding: '14px 20px', fontWeight: 600 }}>
-                        <a
-                          href={`/super-admin/org/${org.id}`}
-                          style={{
-                            color: 'var(--color-text)', textDecoration: 'none',
-                            borderBottom: '1px dashed var(--color-text-faint)',
-                            transition: 'color var(--transition-fast), border-color var(--transition-fast)',
-                          }}
-                          onMouseOver={(e) => { e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.borderColor = 'var(--color-primary)' }}
-                          onMouseOut={(e) => { e.currentTarget.style.color = 'var(--color-text)'; e.currentTarget.style.borderColor = 'var(--color-text-faint)' }}
-                        >
-                          {org.name}
-                        </a>
-                      </td>
-                      <td style={{ padding: '14px 20px', color: 'var(--color-text-muted)', fontSize: '0.85rem', fontFamily: 'monospace' }}>{org.slug}</td>
-                      <td style={{ padding: '14px 20px' }}>{orgStats[org.id]?.clients ?? 0}</td>
-                      <td style={{ padding: '14px 20px', color: 'var(--color-primary)', fontWeight: 600 }}>
-                        {formatCents(orgStats[org.id]?.mrr_cents ?? 0, org.default_currency)}
-                      </td>
-                      <td style={{ padding: '14px 20px', color: 'var(--color-text-muted)' }}>{org.default_currency}</td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <span style={{
-                          fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-                          background: isSuspended ? 'var(--color-danger-dim)' : 'rgba(34,197,94,0.12)',
-                          color: isSuspended ? 'var(--color-danger)' : 'var(--color-success)',
-                        }}>
-                          {isSuspended ? 'Suspended' : 'Active'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <button
-                            id={`add-admin-${org.id}`}
-                            onClick={() => { setAdminOrgId(org.id); setShowAdminModal(true); setAdminSuccess(''); setAdminError(''); setAdminForm({ full_name: '', email: '', password: '' }) }}
+            <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    {['Organization', 'Slug', 'Clients', 'MRR', 'Currency', 'Status', 'Actions'].map(h => (
+                      <th key={h}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {orgs.map(org => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const isSuspended = !!(org as any).suspended
+                    const hasAdmin = !!orgAdmins[org.id]
+                    return (
+                      <tr key={org.id} style={{ opacity: isSuspended ? 0.7 : 1 }}>
+                        <td style={{ fontWeight: 600 }}>
+                          <a
+                            href={`/super-admin/org/${org.id}`}
                             style={{
-                              background: 'var(--color-primary-dim)', color: 'var(--color-primary)',
-                              border: '1px solid var(--color-border-active)', padding: '6px 14px',
-                              borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                              color: 'var(--color-text)', textDecoration: 'none',
+                              borderBottom: '1px dashed var(--color-text-faint)',
+                              transition: 'color var(--transition-fast), border-color var(--transition-fast)',
                             }}
+                            onMouseOver={(e) => { e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.borderColor = 'var(--color-primary)' }}
+                            onMouseOut={(e) => { e.currentTarget.style.color = 'var(--color-text)'; e.currentTarget.style.borderColor = 'var(--color-text-faint)' }}
                           >
-                            + Add Admin
-                          </button>
+                            {org.name}
+                          </a>
+                        </td>
+                        <td style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', fontFamily: 'monospace' }}>{org.slug}</td>
+                        <td>{orgStats[org.id]?.clients ?? 0}</td>
+                        <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                          {formatCents(orgStats[org.id]?.mrr_cents ?? 0, org.default_currency)}
+                        </td>
+                        <td style={{ color: 'var(--color-text-muted)' }}>{org.default_currency}</td>
+                        <td>
+                          <span className={`badge ${isSuspended ? 'badge-past_due' : 'badge-active'}`}>
+                            {isSuspended ? 'Suspended' : 'Active'}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <button
+                              id={`add-admin-${org.id}`}
+                              disabled={hasAdmin}
+                              onClick={() => {
+                                if (hasAdmin) return
+                                setAdminOrgId(org.id)
+                                setShowAdminModal(true)
+                                setAdminSuccess('')
+                                setAdminError('')
+                                setAdminForm({ full_name: '', email: '', password: '' })
+                              }}
+                              title={hasAdmin ? 'An admin user is already assigned to this organization' : 'Add Admin User'}
+                              className={`btn btn-sm ${hasAdmin ? 'btn-ghost' : 'btn-secondary'}`}
+                              style={{ opacity: hasAdmin ? 0.6 : 1 }}
+                            >
+                              {hasAdmin ? '✓ Admin Assigned' : '+ Add Admin'}
+                            </button>
 
                           <button
-                            id={`suspend-org-${org.id}`}
-                            onClick={() => handleSuspendOrg(org.id, !isSuspended)}
-                            disabled={suspendLoading === org.id}
+                            id={`manage-org-${org.id}`}
+                            onClick={() => {
+                              setManageOrg(org)
+                              setShowManageModal(true)
+                              setShowEditAdmin(false)
+                            }}
                             style={{
-                              background: isSuspended ? 'rgba(34,197,94,0.1)' : 'var(--color-danger-dim)',
-                              color: isSuspended ? 'var(--color-success)' : 'var(--color-danger)',
-                              border: `1px solid ${isSuspended ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                              padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
-                              fontSize: '0.8rem', fontWeight: 600,
-                              opacity: suspendLoading === org.id ? 0.6 : 1,
+                              background: 'var(--color-surface-hover, rgba(255,255,255,0.06))',
+                              color: 'var(--color-text)',
+                              border: '1px solid var(--color-border)',
+                              padding: '6px 14px',
+                              borderRadius: 8,
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
                             }}
                           >
-                            {suspendLoading === org.id ? '…' : isSuspended ? '✓ Reactivate' : '⏸ Suspend'}
+                            ⚙️ Manage
                           </button>
                         </div>
                       </td>
@@ -307,16 +374,224 @@ export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgSta
                 })}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    </div>
+
+      {/* ── Manage Organization Modal ── */}
+      {showManageModal && manageOrg && (
+        <Modal
+          title={`Manage Organization: ${manageOrg.name}`}
+          onClose={() => {
+            setShowManageModal(false)
+            setManageOrg(null)
+            setShowEditAdmin(false)
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Org summary strip */}
+            <div style={{
+              background: 'var(--color-surface-2, rgba(255,255,255,0.03))',
+              border: '1px solid var(--color-border)',
+              borderRadius: 12,
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99,
+                    background: (manageOrg as any).suspended ? 'var(--color-danger-dim)' : 'rgba(34,197,94,0.12)',
+                    color: (manageOrg as any).suspended ? 'var(--color-danger)' : 'var(--color-success)',
+                  }}>
+                    {(manageOrg as any).suspended ? 'Suspended' : 'Active Workspace'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  const isSusp = !!(manageOrg as any).suspended
+                  await handleSuspendOrg(manageOrg.id, !isSusp)
+                  setManageOrg(prev => prev ? { ...prev, suspended: !isSusp } as any : null)
+                }}
+                disabled={suspendLoading === manageOrg.id}
+                style={{
+                  background: (manageOrg as any).suspended ? 'rgba(34,197,94,0.12)' : 'var(--color-danger-dim)',
+                  color: (manageOrg as any).suspended ? 'var(--color-success)' : 'var(--color-danger)',
+                  border: `1px solid ${(manageOrg as any).suspended ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  opacity: suspendLoading === manageOrg.id ? 0.6 : 1,
+                }}
+              >
+                {suspendLoading === manageOrg.id ? 'Updating…' : (manageOrg as any).suspended ? '✓ Reactivate Organization' : '⏸ Suspend Organization'}
+              </button>
+            </div>
+
+            {/* Admin Management Section */}
+            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 16 }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 12 }}>Admin User Management</h3>
+
+              {orgAdmins[manageOrg.id] ? (
+                <div style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 12,
+                  padding: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text)' }}>
+                        {orgAdmins[manageOrg.id]?.full_name || 'Admin User'}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                        {orgAdmins[manageOrg.id]?.email}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => {
+                          setShowEditAdmin(prev => !prev)
+                          setEditAdminForm({
+                            full_name: orgAdmins[manageOrg.id]?.full_name || '',
+                            password: '',
+                          })
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                      >
+                        {showEditAdmin ? 'Cancel Edit' : '✏️ Edit Admin'}
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const adminId = orgAdmins[manageOrg.id]?.id
+                          if (adminId && confirm(`Are you sure you want to remove the admin account (${orgAdmins[manageOrg.id]?.email})?`)) {
+                            await handleRemoveAdmin(manageOrg.id, adminId)
+                          }
+                        }}
+                        disabled={removeAdminLoading}
+                        style={{
+                          background: 'var(--color-danger-dim)',
+                          color: 'var(--color-danger)',
+                          border: '1px solid rgba(239,68,68,0.3)',
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          opacity: removeAdminLoading ? 0.6 : 1,
+                        }}
+                      >
+                        {removeAdminLoading ? 'Removing…' : '🗑️ Remove Admin'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Inline Edit Form */}
+                  {showEditAdmin && (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault()
+                        const adminId = orgAdmins[manageOrg.id]?.id
+                        if (adminId) {
+                          await handleUpdateAdmin(manageOrg.id, adminId, editAdminForm.full_name, editAdminForm.password)
+                        }
+                      }}
+                      style={{
+                        background: 'var(--color-surface-2, rgba(0,0,0,0.2))',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 10,
+                        padding: 16,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        marginTop: 4,
+                      }}
+                    >
+                      <Field label="Full Name" id="edit-admin-name">
+                        <input
+                          id="edit-admin-name"
+                          className="form-input"
+                          value={editAdminForm.full_name}
+                          onChange={e => setEditAdminForm(f => ({ ...f, full_name: e.target.value }))}
+                          required
+                        />
+                      </Field>
+
+                      <Field label="New Password (optional)" id="edit-admin-pass">
+                        <input
+                          id="edit-admin-pass"
+                          type="text"
+                          className="form-input"
+                          placeholder="Leave blank to keep unchanged"
+                          value={editAdminForm.password}
+                          onChange={e => setEditAdminForm(f => ({ ...f, password: e.target.value }))}
+                          minLength={6}
+                        />
+                      </Field>
+
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                        style={{ alignSelf: 'flex-end', padding: '8px 16px', fontSize: '0.85rem' }}
+                        disabled={editAdminLoading}
+                      >
+                        {editAdminLoading ? 'Saving…' : 'Save Changes'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  background: 'var(--color-surface)',
+                  border: '1px dashed var(--color-border)',
+                  borderRadius: 12,
+                  padding: 24,
+                  textAlign: 'center',
+                  color: 'var(--color-text-muted)',
+                }}>
+                  <p style={{ marginBottom: 12, fontSize: '0.9rem' }}>No admin user has been assigned to this organization yet.</p>
+                  <button
+                    onClick={() => {
+                      setShowManageModal(false)
+                      setAdminOrgId(manageOrg.id)
+                      setShowAdminModal(true)
+                      setAdminSuccess('')
+                      setAdminError('')
+                      setAdminForm({ full_name: '', email: '', password: '' })
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ margin: '0 auto' }}
+                  >
+                    + Add Admin User
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* ── Create Org Modal ── */}
       {showOrgModal && (
         <Modal title="Create New Organization" onClose={() => setShowOrgModal(false)}>
           <form onSubmit={handleCreateOrg} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Field label="Organization / Business Name" id="org-name">
-              <input id="org-name" className="form-input" placeholder="e.g. My Books Shop, Cups & More" required
+              <input id="org-name" className="form-input" placeholder="e.g. Agency, Apex Solutions" required
                 value={orgForm.name} 
                 onChange={e => {
                   const newName = e.target.value
@@ -336,7 +611,7 @@ export default function SuperAdminClient({ superAdmin, orgs: initialOrgs, orgSta
                 <input 
                   id="org-slug" 
                   className="form-input" 
-                  placeholder="my-books-shop" 
+                  placeholder="agency" 
                   required
                   style={{ fontFamily: 'monospace' }}
                   value={orgForm.slug} 

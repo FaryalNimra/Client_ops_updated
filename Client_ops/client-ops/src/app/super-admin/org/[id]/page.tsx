@@ -2,6 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import {
+  Users,
+  Building2,
+  CheckCircle2,
+  TrendingUp,
+  Shield,
+  ArrowLeft,
+  Copy,
+  Check,
+  Mail,
+  Phone,
+  Calendar,
+  AlertTriangle,
+  ExternalLink,
+} from 'lucide-react'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface Admin {
   id: string
@@ -143,94 +160,135 @@ export default function OrgDetailPage() {
         borderBottom: '1px solid var(--color-border)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 32px', position: 'sticky', top: 0, zIndex: 50,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
-            width: 32, height: 32, background: 'var(--color-primary)', borderRadius: 8,
+            width: 34, height: 34,
+            background: 'linear-gradient(135deg, #FF4500 0%, #FF6B35 100%)',
+            borderRadius: 10,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: '1rem', color: '#fff',
+            fontWeight: 800, fontSize: '1rem', color: '#fff',
+            boxShadow: '0 4px 12px rgba(255, 69, 0, 0.35)',
           }}>C</div>
           <div>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Client Ops</span>
+            <span style={{ fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.02em' }}>Client Ops</span>
             <span style={{
-              marginLeft: 8, fontSize: '0.7rem', background: 'var(--color-primary-dim)',
-              color: 'var(--color-primary)', padding: '2px 8px', borderRadius: 999, fontWeight: 600,
+              marginLeft: 8, fontSize: '0.68rem', background: 'var(--color-primary-dim)',
+              color: 'var(--color-primary)', padding: '2px 8px', borderRadius: 999, fontWeight: 700,
+              letterSpacing: '0.04em', textTransform: 'uppercase',
             }}>SUPER ADMIN</span>
           </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link
+            href="/super-admin"
+            className="btn btn-secondary btn-sm"
+            style={{ gap: 6 }}
+          >
+            <ArrowLeft size={14} /> Dashboard
+          </Link>
+          <ThemeToggle size="sm" />
         </div>
       </div>
 
       {/* ── Body ── */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '36px 24px' }}>
 
-        {/* Back button + Header */}
-        <button
-          onClick={() => router.push('/super-admin')}
-          style={{
-            background: 'none', border: 'none', color: 'var(--color-primary)',
-            cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, marginBottom: 16,
-            display: 'flex', alignItems: 'center', gap: 6, padding: 0,
-          }}
-        >
-          ← Back to Dashboard
-        </button>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 52, height: 52,
+              background: 'linear-gradient(135deg, #FF5722 0%, #FF8A65 100%)',
+              borderRadius: 14,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.5rem', fontWeight: 800, color: '#fff',
+              boxShadow: '0 4px 14px rgba(255, 87, 34, 0.35)',
+            }}>
+              {org.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <h1 style={{ fontSize: '1.65rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+                  {org.name}
+                </h1>
+                <span className={`badge ${isSuspended ? 'badge-past_due' : 'badge-active'}`}>
+                  {isSuspended ? 'Suspended' : 'Active'}
+                </span>
+              </div>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: 4 }}>
+                Workspace: <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-text)' }}>/{org.slug}</span>
+                <span style={{ margin: '0 8px', opacity: 0.5 }}>•</span>
+                Created {formatDate(org.created_at)}
+              </p>
+            </div>
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32, flexWrap: 'wrap' }}>
-          <div style={{
-            width: 48, height: 48, background: 'var(--color-primary-dim)', borderRadius: 14,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)',
-          }}>
-            {org.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12 }}>
-              {org.name}
-              <span style={{
-                fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-                background: isSuspended ? 'var(--color-danger-dim)' : 'rgba(34,197,94,0.12)',
-                color: isSuspended ? 'var(--color-danger)' : 'var(--color-success)',
-              }}>
-                {isSuspended ? 'Suspended' : 'Active'}
-              </span>
-            </h1>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginTop: 2 }}>
-              <span style={{ fontFamily: 'monospace' }}>{org.slug}</span>
-              <span style={{ margin: '0 8px' }}>·</span>
-              Created {formatDate(org.created_at)}
-            </p>
-          </div>
+          <Link href="/super-admin" className="btn btn-ghost btn-sm" style={{ gap: 6 }}>
+            <ArrowLeft size={14} /> Back to Organizations
+          </Link>
         </div>
 
         {/* ── Overview Stats ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
-          {[
-            { label: 'Admins', value: admins.length, sub: 'Admin users' },
-            { label: 'Clients', value: clients.length, sub: 'Total clients' },
-            { label: 'Active Clients', value: mrr.active_clients, sub: 'Paying clients' },
-            { label: 'MRR', value: formatCents(mrr.mrr_cents, org.default_currency), sub: 'Monthly recurring' },
-          ].map((s, i) => (
-            <div key={i} style={{
-              background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-              borderRadius: 14, padding: '20px 24px',
-            }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0 4px', color: 'var(--color-text)' }}>{s.value}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{s.sub}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
+          <div className="stat-card animate-in" style={{ animationDelay: '0ms' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="stat-card-label">Admins</span>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--color-primary-dim)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={17} />
+              </div>
             </div>
-          ))}
+            <div className="stat-card-value">{admins.length}</div>
+            <div className="stat-card-sub">Assigned org admins</div>
+          </div>
+
+          <div className="stat-card animate-in" style={{ animationDelay: '60ms' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="stat-card-label">Clients</span>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--color-surface-2)', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={17} />
+              </div>
+            </div>
+            <div className="stat-card-value">{clients.length}</div>
+            <div className="stat-card-sub">Total client accounts</div>
+          </div>
+
+          <div className="stat-card animate-in" style={{ animationDelay: '120ms' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="stat-card-label">Active Clients</span>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--color-success-dim)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={17} />
+              </div>
+            </div>
+            <div className="stat-card-value" style={{ color: 'var(--color-success)' }}>{mrr.active_clients}</div>
+            <div className="stat-card-sub">Paying client subscriptions</div>
+          </div>
+
+          <div className="stat-card animate-in" style={{ animationDelay: '180ms' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="stat-card-label">Monthly Revenue</span>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--color-primary-dim)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={17} />
+              </div>
+            </div>
+            <div className="stat-card-value" style={{ color: 'var(--color-primary)' }}>
+              {formatCents(mrr.mrr_cents, org.default_currency)}
+            </div>
+            <div className="stat-card-sub">MRR recurring revenue</div>
+          </div>
         </div>
 
         {/* ── Organization Info Card ── */}
-        <div style={{
-          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-          borderRadius: 14, marginBottom: 24, overflow: 'hidden',
-        }}>
-          <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-            🏢 Organization Info
+        <div className="card" style={{ marginBottom: 24, padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem' }}>
+            <Building2 size={18} style={{ color: 'var(--color-primary)' }} />
+            Organization Details
           </div>
           <div style={{ padding: '20px 24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
               <InfoItem label="Org ID" value={org.id} mono copyable onCopy={() => copyToClipboard(org.id, 'org-id')} copied={copiedId === 'org-id'} />
               <InfoItem label="Slug" value={org.slug} mono />
               <InfoItem label="Default Currency" value={org.default_currency} />
@@ -243,23 +301,20 @@ export default function OrgDetailPage() {
         </div>
 
         {/* ── Admins Section ── */}
-        <div style={{
-          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-          borderRadius: 14, marginBottom: 24, overflow: 'hidden',
-        }}>
-          <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              👤 Admins
-              <span style={{
-                fontSize: '0.7rem', background: 'var(--color-primary-dim)', color: 'var(--color-primary)',
-                padding: '2px 8px', borderRadius: 999, fontWeight: 700,
-              }}>{admins.length}</span>
+        <div className="card" style={{ marginBottom: 24, padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem' }}>
+              <Shield size={18} style={{ color: 'var(--color-primary)' }} />
+              Admins
+              <span className="badge badge-active" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                {admins.length}
+              </span>
             </span>
           </div>
 
           {admins.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              No admins assigned to this organization yet.
+            <div className="empty-state" style={{ padding: 48 }}>
+              <p className="text-muted">No admins assigned to this organization yet.</p>
             </div>
           ) : (
             <div style={{ padding: '8px 0' }}>
@@ -292,11 +347,7 @@ export default function OrgDetailPage() {
                       <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
                         {admin.full_name || 'Unnamed Admin'}
                       </span>
-                      <span style={{
-                        fontSize: '0.7rem', padding: '2px 8px', borderRadius: 99, fontWeight: 700,
-                        background: admin.email_confirmed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-                        color: admin.email_confirmed ? '#22C55E' : '#F59E0B',
-                      }}>
+                      <span className={`badge ${admin.email_confirmed ? 'badge-active' : 'badge-paused'}`} style={{ fontSize: '0.7rem' }}>
                         {admin.email_confirmed ? 'Verified' : 'Unverified'}
                       </span>
                     </div>
@@ -315,24 +366,24 @@ export default function OrgDetailPage() {
                             }}
                             title="Copy email"
                           >
-                            {copiedId === `email-${admin.id}` ? '✓' : '📋'}
+                            {copiedId === `email-${admin.id}` ? <Check size={13} style={{ color: 'var(--color-success)' }} /> : <Copy size={13} />}
                           </button>
                         </div>
                       </div>
                       <div>
                         <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>User ID</span>
-                        <div style={{ fontSize: '0.8rem', marginTop: 2, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>
+                        <div style={{ fontSize: '0.8rem', marginTop: 2, fontFamily: 'monospace', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
                           {admin.id.slice(0, 8)}…
                           <button
                             onClick={() => copyToClipboard(admin.id, `uid-${admin.id}`)}
                             style={{
                               background: 'none', border: 'none', cursor: 'pointer',
                               color: copiedId === `uid-${admin.id}` ? 'var(--color-success)' : 'var(--color-text-faint)',
-                              fontSize: '0.75rem', padding: '2px 4px', marginLeft: 4,
+                              fontSize: '0.75rem', padding: '2px 4px',
                             }}
                             title="Copy full ID"
                           >
-                            {copiedId === `uid-${admin.id}` ? '✓' : '📋'}
+                            {copiedId === `uid-${admin.id}` ? <Check size={13} style={{ color: 'var(--color-success)' }} /> : <Copy size={13} />}
                           </button>
                         </div>
                       </div>
@@ -353,56 +404,47 @@ export default function OrgDetailPage() {
             </div>
           )}
           <div style={{ padding: '12px 24px', borderTop: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-2)' }}>
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-faint)', lineHeight: 1.5 }}>
-              💡 <strong>Note:</strong> Passwords are securely hashed and cannot be retrieved. If an admin forgets their password, 
-              you can reset it from the Supabase dashboard or create a new admin account.
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-faint)', lineHeight: 1.5, margin: 0 }}>
+              💡 <strong>Note:</strong> Passwords are securely hashed. If an admin forgets their password, you can reset it or update their credentials from the Super Admin dashboard.
             </p>
           </div>
         </div>
 
         {/* ── Clients Section ── */}
-        <div style={{
-          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-          borderRadius: 14, marginBottom: 24, overflow: 'hidden',
-        }}>
-          <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              🏪 Clients
-              <span style={{
-                fontSize: '0.7rem', background: 'var(--color-primary-dim)', color: 'var(--color-primary)',
-                padding: '2px 8px', borderRadius: 999, fontWeight: 700,
-              }}>{clients.length}</span>
+        <div className="card" style={{ marginBottom: 24, padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem' }}>
+              <Users size={18} style={{ color: 'var(--color-primary)' }} />
+              Clients
+              <span className="badge badge-active" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                {clients.length}
+              </span>
             </span>
           </div>
 
           {clients.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              No clients in this organization yet.
+            <div className="empty-state" style={{ padding: 48 }}>
+              <p className="text-muted">No clients in this organization yet.</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+              <table className="table">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    {['Business / Client', 'Email & Contact', 'Plan & Pricing', 'Stripe Checkout Status', 'Stripe IDs', 'Joined / Purchased'].map(h => (
-                      <th key={h} style={{
-                        padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem',
-                        color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}>{h}</th>
+                  <tr>
+                    {['Business / Client', 'Email & Contact', 'Plan & Pricing', 'Stripe Status', 'Stripe IDs', 'Joined / Purchased'].map(h => (
+                      <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {clients.map(client => {
-                    const sc = STATUS_COLORS[client.status] || STATUS_COLORS['active']
                     const hasSub = !!client.stripe_subscription_id
                     const isPaid = client.status === 'active' || hasSub
                     
                     return (
-                      <tr key={client.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                      <tr key={client.id}>
                         {/* Business */}
-                        <td style={{ padding: '14px 20px' }}>
+                        <td>
                           <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--color-text)' }}>
                             {client.business_name}
                           </div>
@@ -414,7 +456,7 @@ export default function OrgDetailPage() {
                         </td>
 
                         {/* Email & Phone */}
-                        <td style={{ padding: '14px 20px', fontSize: '0.85rem' }}>
+                        <td style={{ fontSize: '0.85rem' }}>
                           <div style={{ fontFamily: 'monospace', color: 'var(--color-text)' }}>
                             {client.email}
                           </div>
@@ -426,7 +468,7 @@ export default function OrgDetailPage() {
                         </td>
 
                         {/* Plan & Pricing */}
-                        <td style={{ padding: '14px 20px' }}>
+                        <td>
                           <div style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.9rem' }}>
                             {client.plan_price_cents ? formatCents(client.plan_price_cents, client.currency || org.default_currency) : '—'}
                             <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>/mo</span>
@@ -439,15 +481,9 @@ export default function OrgDetailPage() {
                         </td>
 
                         {/* Stripe Checkout Status */}
-                        <td style={{ padding: '14px 20px' }}>
+                        <td>
                           <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4 }}>
-                            <span style={{
-                              fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-                              background: isPaid ? 'rgba(34,197,94,0.12)' : client.status === 'past_due' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
-                              color: isPaid ? '#22C55E' : client.status === 'past_due' ? '#EF4444' : '#F59E0B',
-                              display: 'inline-flex', alignItems: 'center', gap: 6,
-                            }}>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: isPaid ? '#22C55E' : client.status === 'past_due' ? '#EF4444' : '#F59E0B' }} />
+                            <span className={`badge ${isPaid ? 'badge-active' : client.status === 'past_due' ? 'badge-past_due' : 'badge-paused'}`}>
                               {hasSub ? 'Subscribed & Active' : isPaid ? 'Active Client' : client.status === 'past_due' ? 'Payment Failed' : 'Checkout Pending'}
                             </span>
                             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
@@ -457,7 +493,7 @@ export default function OrgDetailPage() {
                         </td>
 
                         {/* Stripe Customer & Sub ID */}
-                        <td style={{ padding: '14px 20px', fontSize: '0.8rem' }}>
+                        <td style={{ fontSize: '0.8rem' }}>
                           {client.stripe_customer_id || client.stripe_subscription_id ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                               {client.stripe_customer_id && (
@@ -468,25 +504,25 @@ export default function OrgDetailPage() {
                                   </span>
                                   <button
                                     onClick={() => copyToClipboard(client.stripe_customer_id!, `cus-${client.id}`)}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem', color: copiedId === `cus-${client.id}` ? '#22C55E' : '#666' }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem', color: copiedId === `cus-${client.id}` ? 'var(--color-success)' : 'var(--color-text-muted)' }}
                                     title="Copy Customer ID"
                                   >
-                                    {copiedId === `cus-${client.id}` ? '✓' : '📋'}
+                                    {copiedId === `cus-${client.id}` ? <Check size={11} style={{ color: 'var(--color-success)' }} /> : <Copy size={11} />}
                                   </button>
                                 </div>
                               )}
                               {client.stripe_subscription_id && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                   <span style={{ fontSize: '0.68rem', color: 'var(--color-text-faint)', textTransform: 'uppercase' }}>Sub:</span>
-                                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#22C55E' }}>
+                                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-success)' }}>
                                     {client.stripe_subscription_id.slice(0, 10)}…
                                   </span>
                                   <button
                                     onClick={() => copyToClipboard(client.stripe_subscription_id!, `sub-${client.id}`)}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem', color: copiedId === `sub-${client.id}` ? '#22C55E' : '#666' }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem', color: copiedId === `sub-${client.id}` ? 'var(--color-success)' : 'var(--color-text-muted)' }}
                                     title="Copy Subscription ID"
                                   >
-                                    {copiedId === `sub-${client.id}` ? '✓' : '📋'}
+                                    {copiedId === `sub-${client.id}` ? <Check size={11} style={{ color: 'var(--color-success)' }} /> : <Copy size={11} />}
                                   </button>
                                 </div>
                               )}
@@ -497,10 +533,10 @@ export default function OrgDetailPage() {
                         </td>
 
                         {/* Date */}
-                        <td style={{ padding: '14px 20px', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                        <td style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
                           <div>{formatDate(client.purchase_date || client.created_at)}</div>
                           {client.purchase_date && (
-                            <div style={{ fontSize: '0.7rem', color: '#22C55E', marginTop: 2 }}>Paid Anchor</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-success)', marginTop: 2, fontWeight: 600 }}>Paid Anchor</div>
                           )}
                         </td>
                       </tr>

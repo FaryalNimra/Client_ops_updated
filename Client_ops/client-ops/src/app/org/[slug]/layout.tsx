@@ -1,6 +1,7 @@
-import { createSupabaseServer } from '@/lib/supabase/server'
+import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
+import AdminTopbar from '@/components/AdminTopbar'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +17,10 @@ export default async function OrgWorkspaceLayout({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  // Find organization by slug
-  const { data: rawOrg, error: orgError } = await supabase
+  const adminClient = createSupabaseAdmin()
+
+  // Find organization by slug safely using adminClient (bypasses RLS)
+  const { data: rawOrg, error: orgError } = await adminClient
     .from('organizations')
     .select('id, name, slug, suspended')
     .eq('slug', slug)
@@ -29,8 +32,8 @@ export default async function OrgWorkspaceLayout({
     notFound()
   }
 
-  // Fetch profile
-  const { data: rawProfile } = await supabase
+  // Fetch profile safely using adminClient
+  const { data: rawProfile } = await adminClient
     .from('profiles')
     .select('role, org_id')
     .eq('id', user.id)
@@ -77,6 +80,12 @@ export default async function OrgWorkspaceLayout({
         openRequestsCount={openRequestsCount ?? 0}
       />
       <main className="main-content">
+        <AdminTopbar
+          role={profile.role as 'admin' | 'super_admin'}
+          orgName={org.name}
+          orgSlug={org.slug}
+          userEmail={user.email}
+        />
         {children}
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { createSupabaseServer } from '@/lib/supabase/server'
+import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -14,24 +14,45 @@ function fmt(d: string | null) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
 }
 
-export default async function RequestsPage({
-  searchParams,
-}: {
-  searchParams: { status?: string }
-}) {
+export default async function RequestsPage(props: {
+  searchParams?: Promise<{ status?: string }> | { status?: string }
+  params?: Promise<{ slug?: string }> | { slug?: string }
+  orgSlug?: string
+} = {}) {
+  const searchParams = props.searchParams ? await props.searchParams : {}
+  const params = props.params ? await props.params : {}
+  const currentSlug = props.orgSlug || (params as { slug?: string })?.slug
+
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  const { data: rawProfile } = await supabase
+  const adminClient = createSupabaseAdmin()
+
+  const { data: rawProfile } = await adminClient
     .from('profiles')
     .select('role, org_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   const profile = rawProfile as { role: string; org_id: string | null } | null
 
-  let query = supabase
+  let orgId = profile?.org_id
+
+  if (currentSlug && (!orgId || profile?.role === 'super_admin')) {
+    const { data: orgData } = await adminClient
+      .from('organizations')
+      .select('id')
+      .eq('slug', currentSlug)
+      .maybeSingle()
+    if (orgData?.id) {
+      orgId = orgData.id
+    }
+  }
+
+  const basePrefix = currentSlug ? `/org/${currentSlug}` : '/admin'
+
+  let query = adminClient
     .from('change_requests')
     .select(`
       id, type, description, target_page, status, admin_note,
@@ -41,8 +62,8 @@ export default async function RequestsPage({
     .order('requested_at', { ascending: false })
     .limit(200)
 
-  if (profile?.org_id) {
-    query = query.eq('org_id', profile.org_id)
+  if (orgId) {
+    query = query.eq('org_id', orgId)
   }
 
   if (searchParams.status) query = query.eq('status', searchParams.status as never)
@@ -64,12 +85,12 @@ export default async function RequestsPage({
       <div className="page-body">
         {/* Filter tabs */}
         <div className="flex gap-3 flex-wrap">
-          <Link href="/admin/requests" id="filter-active"
+          <Link href={`${basePrefix}/requests`} id="filter-active"
             className={`btn btn-sm ${!searchParams.status ? 'btn-primary' : 'btn-secondary'}`}>
             Active queue
           </Link>
           {STATUSES.map(s => (
-            <Link key={s} href={`/admin/requests?status=${s}`} id={`filter-${s}`}
+            <Link key={s} href={`${basePrefix}/requests?status=${s}`} id={`filter-${s}`}
               className={`btn btn-sm ${searchParams.status === s ? 'btn-primary' : 'btn-secondary'}`}>
               {s.replace(/_/g, ' ')}
             </Link>
@@ -87,7 +108,7 @@ export default async function RequestsPage({
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
                     <div>
                       {client && (
-                        <Link href={`/admin/clients/${(client as { id: string }).id}`} style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600, marginBottom: 4, display: 'block' }}>
+                        <Link href={`${basePrefix}/clients/${(client as { id: string }).id}`} style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600, marginBottom: 4, display: 'block' }}>
                           {(client as { business_name: string }).business_name}
                         </Link>
                       )}

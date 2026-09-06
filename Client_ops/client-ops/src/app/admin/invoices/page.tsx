@@ -1,7 +1,10 @@
-import { createSupabaseServer } from '@/lib/supabase/server'
+export const dynamic = 'force-dynamic'
+
+import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ExternalLink, FileText } from 'lucide-react'
+import MonthFilter from './MonthFilter'
 
 function Badge({ status }: { status: string }) {
   return <span className={`badge badge-${status}`}>{status}</span>
@@ -16,24 +19,45 @@ function fmt(d: string | null) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export default async function InvoicesPage({
-  searchParams,
-}: {
-  searchParams: { status?: string; month?: string; q?: string }
-}) {
+export default async function InvoicesPage(props: {
+  searchParams?: Promise<{ status?: string; month?: string; q?: string }> | { status?: string; month?: string; q?: string }
+  params?: Promise<{ slug?: string }> | { slug?: string }
+  orgSlug?: string
+} = {}) {
+  const searchParams = props.searchParams ? await props.searchParams : {}
+  const params = props.params ? await props.params : {}
+  const currentSlug = props.orgSlug || (params as { slug?: string })?.slug
+
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  const { data: rawProfile } = await supabase
+  const adminClient = createSupabaseAdmin()
+
+  const { data: rawProfile } = await adminClient
     .from('profiles')
     .select('role, org_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   const profile = rawProfile as { role: string; org_id: string | null } | null
 
-  let query = supabase
+  let orgId = profile?.org_id
+
+  if (currentSlug && (!orgId || profile?.role === 'super_admin')) {
+    const { data: orgData } = await adminClient
+      .from('organizations')
+      .select('id')
+      .eq('slug', currentSlug)
+      .maybeSingle()
+    if (orgData?.id) {
+      orgId = orgData.id
+    }
+  }
+
+  const basePrefix = currentSlug ? `/org/${currentSlug}` : '/admin'
+
+  let query = adminClient
     .from('invoices')
     .select(`
       stripe_invoice_id, amount_cents, currency, status,
@@ -44,8 +68,8 @@ export default async function InvoicesPage({
     .order('created_at', { ascending: false })
     .limit(200)
 
-  if (profile?.org_id) {
-    query = query.eq('org_id', profile.org_id)
+  if (orgId) {
+    query = query.eq('org_id', orgId)
   }
 
   if (searchParams.status) query = query.eq('status', searchParams.status as never)
@@ -78,32 +102,16 @@ export default async function InvoicesPage({
       <div className="page-body">
         {/* Filters */}
         <div className="flex gap-3 flex-wrap items-center">
-          <Link href="/admin/invoices" id="filter-all" className={`btn btn-sm ${!searchParams.status ? 'btn-primary' : 'btn-secondary'}`}>All</Link>
+          <Link href={`${basePrefix}/invoices`} id="filter-all" className={`btn btn-sm ${!searchParams.status ? 'btn-primary' : 'btn-secondary'}`}>All</Link>
           {STATUSES.map(s => (
-            <Link key={s} href={`/admin/invoices?status=${s}`} id={`filter-${s}`}
+            <Link key={s} href={`${basePrefix}/invoices?status=${s}`} id={`filter-${s}`}
               className={`btn btn-sm ${searchParams.status === s ? 'btn-primary' : 'btn-secondary'}`}>
               {s}
             </Link>
           ))}
 
           <div style={{ marginLeft: 'auto' }}>
-            <select
-              className="form-select"
-              style={{ minWidth: 160 }}
-              onChange={e => {
-                if (e.target.value) window.location.href = `/admin/invoices?month=${e.target.value}`
-                else window.location.href = '/admin/invoices'
-              }}
-              defaultValue={searchParams.month ?? ''}
-            >
-              <option value="">All months</option>
-              {Array.from({ length: 12 }, (_, i) => {
-                const d = new Date()
-                d.setMonth(d.getMonth() - i)
-                const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-                return <option key={val} value={val}>{d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>
-              })}
-            </select>
+            <MonthFilter basePrefix={basePrefix} currentMonth={searchParams.month} />
           </div>
         </div>
 
@@ -128,7 +136,7 @@ export default async function InvoicesPage({
                   <tr key={String(inv.stripe_invoice_id)} id={`invoice-${String(inv.stripe_invoice_id)}`}>
                     <td>
                       {client ? (
-                        <Link href={`/admin/clients/${(client as { id: string }).id}`} style={{ fontWeight: 600 }}>
+                        <Link href={`${basePrefix}/clients/${(client as { id: string }).id}`} style={{ fontWeight: 600 }}>
                           {(client as { business_name: string }).business_name}
                         </Link>
                       ) : '—'}

@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LogOut, ShieldCheck } from 'lucide-react'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface ClientNavbarProps {
   email: string
@@ -62,6 +63,7 @@ export default function ClientNavbar({ email, name, businessName }: ClientNavbar
           <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text)' }}>{name}</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{email}</div>
         </div>
+        <ThemeToggle size="sm" />
         <button
           id="client-sign-out-btn"
           onClick={handleSignOut}

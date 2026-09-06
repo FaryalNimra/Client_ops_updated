@@ -1,6 +1,7 @@
-import { createSupabaseServer } from '@/lib/supabase/server'
+import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
+import AdminTopbar from '@/components/AdminTopbar'
 
 export default async function AdminLayout({
   children,
@@ -11,8 +12,10 @@ export default async function AdminLayout({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  // Fetch profile + org name
-  const { data: rawProfile } = await supabase
+  const adminClient = createSupabaseAdmin()
+
+  // Fetch profile + org name safely with admin client
+  const { data: rawProfile } = await adminClient
     .from('profiles')
     .select('role, org_id')
     .eq('id', user.id)
@@ -37,7 +40,7 @@ export default async function AdminLayout({
 
   // If user is an org admin, redirect to their custom slug workspace
   if (profile.role === 'admin' && profile.org_id) {
-    const { data: rawOrg } = await supabase
+    const { data: rawOrg } = await adminClient
       .from('organizations')
       .select('name, slug')
       .eq('id', profile.org_id)
@@ -79,10 +82,17 @@ export default async function AdminLayout({
       <Sidebar
         role={profile.role as 'admin' | 'super_admin'}
         orgName={orgName}
+        orgSlug={orgSlug}
         failedCount={failedCount ?? 0}
         openRequestsCount={openRequestsCount ?? 0}
       />
       <main className="main-content">
+        <AdminTopbar
+          role={profile.role as 'admin' | 'super_admin'}
+          orgName={orgName}
+          orgSlug={orgSlug}
+          userEmail={user.email}
+        />
         {children}
       </main>
     </div>

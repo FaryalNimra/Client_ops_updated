@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 import styles from './landing.module.css'
 
 interface LandingPageProps {
@@ -65,6 +66,7 @@ export default function LandingPageClient({ user, profile }: LandingPageProps) {
           </div>
 
           <div className={styles.navActions}>
+            <ThemeToggle size="sm" />
             {user ? (
               <Link href={getDashboardLink()} className={styles.primaryBtn} style={{ padding: '10px 18px', fontSize: '0.88rem' }}>
                 Go to Dashboard →

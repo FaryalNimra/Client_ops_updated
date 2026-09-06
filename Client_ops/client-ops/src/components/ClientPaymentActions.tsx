@@ -186,7 +186,7 @@ export default function ClientPaymentActions({ client }: ClientPaymentActionsPro
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-secondary btn-sm"
-              style={{ gap: 6, background: 'rgba(37, 211, 102, 0.15)', color: '#25D366', borderColor: 'rgba(37, 211, 102, 0.3)' }}
+              style={{ gap: 6, background: 'var(--color-success-dim)', color: 'var(--color-success)', borderColor: 'rgba(22, 163, 74, 0.3)' }}
             >
               <MessageCircle size={14} /> Send via WhatsApp
             </a>
@@ -194,7 +194,7 @@ export default function ClientPaymentActions({ client }: ClientPaymentActionsPro
             <a
               href={mailtoUrl}
               className="btn btn-secondary btn-sm"
-              style={{ gap: 6, background: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+              style={{ gap: 6, background: 'var(--color-info-dim)', color: 'var(--color-info)', borderColor: 'rgba(37, 99, 235, 0.3)' }}
             >
               <Mail size={14} /> Send via Email
             </a>

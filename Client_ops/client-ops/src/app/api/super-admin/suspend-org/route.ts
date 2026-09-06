@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: org, error } = await (adminClient.from('organizations') as any)
-      .update({ suspended: suspend, suspended_at: suspend ? new Date().toISOString() : null })
+      .update({ suspended: suspend })
       .eq('id', org_id)
       .select()
       .single()

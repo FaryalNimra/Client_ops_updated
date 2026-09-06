@@ -153,34 +153,52 @@ function getCurrentBillingMonth() {
           borderTop: '1px solid var(--color-border)',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 20,
+          gap: 16,
         }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+          <div style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px 20px',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               Monthly Care Plan
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>
               {formatCents(client.plan_price_cents, client.currency ?? 'EUR')}
               <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)', marginLeft: 4 }}>/ mo</span>
             </div>
           </div>
 
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+          <div style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px 20px',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               Billing Anchor Day
             </div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Calendar size={16} style={{ color: 'var(--color-primary)' }} />
+            <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={18} style={{ color: 'var(--color-primary)' }} />
               {client.purchase_date ? `${new Date(client.purchase_date).getDate()}th of every month` : 'Pending'}
             </div>
           </div>
 
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+          <div style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px 20px',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               Account Status
             </div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: client.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              {client.status === 'active' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+            <div style={{ fontSize: '1.15rem', fontWeight: 700, color: client.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {client.status === 'active' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
               {client.status.replace(/_/g, ' ').toUpperCase()}
             </div>
           </div>

@@ -1,3 +1,4 @@
+import React from 'react'
 import { createSupabaseServer } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -25,7 +26,39 @@ function fmt(d: string | null) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export default async function ClientDetailPage({ params }: { params: { id: string } }) {
+function getInitials(name: string) {
+  if (!name) return 'CO'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #FF5722 0%, #FF8A65 100%)',
+  'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
+  'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)',
+  'linear-gradient(135deg, #059669 0%, #34D399 100%)',
+  'linear-gradient(135deg, #D97706 0%, #FBBF24 100%)',
+  'linear-gradient(135deg, #DB2777 0%, #F472B6 100%)',
+]
+
+function getAvatarGradient(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  const index = Math.abs(hash) % AVATAR_GRADIENTS.length
+  return AVATAR_GRADIENTS[index]
+}
+
+export default async function ClientDetailPage(props: {
+  params: Promise<{ id: string; slug?: string }> | { id: string; slug?: string }
+}) {
+  const resolvedParams = await props.params
+  const id = resolvedParams.id
+  const slug = resolvedParams.slug
+  const basePrefix = slug ? `/org/${slug}` : '/admin'
+
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
@@ -38,12 +71,12 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
     { data: rawLifetime },
     { data: rawActivity },
   ] = await Promise.all([
-    supabase.from('clients').select('*').eq('id', params.id).single(),
-    supabase.from('client_assets').select('*').eq('client_id', params.id).order('type'),
-    supabase.from('invoices').select('*').eq('client_id', params.id).order('created_at', { ascending: false }).limit(20),
-    supabase.from('change_requests').select('*').eq('client_id', params.id).order('requested_at', { ascending: false }).limit(10),
-    supabase.from('client_lifetime_value').select('*').eq('client_id', params.id).single(),
-    supabase.from('activity_log').select('*').eq('client_id', params.id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('clients').select('*').eq('id', id).single(),
+    supabase.from('client_assets').select('*').eq('client_id', id).order('type'),
+    supabase.from('invoices').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('change_requests').select('*').eq('client_id', id).order('requested_at', { ascending: false }).limit(10),
+    supabase.from('client_lifetime_value').select('*').eq('client_id', id).single(),
+    supabase.from('activity_log').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(20),
   ])
 
   const client = rawClient as Client | null
@@ -59,19 +92,43 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
     <>
       <div className="page-header">
         <div>
-          <Link href="/admin/clients" className="btn btn-ghost btn-sm" style={{ marginBottom: 8 }}>
-            <ArrowLeft size={14} /> Back to clients
+          <Link href={`${basePrefix}/clients`} className="btn btn-ghost btn-sm" style={{ marginBottom: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={14} />
+            <span>Back to clients</span>
           </Link>
-          <h1 className="page-title">{client.business_name}</h1>
-          <div style={{ display: 'flex', gap: 10, marginTop: 8, alignItems: 'center' }}>
-            <Badge status={client.status} />
-            <span className="text-muted" style={{ fontSize: '0.85rem' }}>{client.email}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '12px',
+                background: getAvatarGradient(client.business_name || 'Client'),
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1rem',
+                fontWeight: 800,
+                flexShrink: 0,
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              {getInitials(client.business_name || 'Client')}
+            </div>
+            <div>
+              <h1 className="page-title">{client.business_name}</h1>
+              <div style={{ display: 'flex', gap: 10, marginTop: 6, alignItems: 'center' }}>
+                <Badge status={client.status} />
+                <span className="text-muted" style={{ fontSize: '0.85rem' }}>{client.email}</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {client.status === 'past_due' && (
             <ReminderActionButton
-              clientId={params.id}
+              clientId={id}
               clientName={client.business_name}
               contactName={client.contact_name}
               clientEmail={client.email}
@@ -81,13 +138,13 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
           )}
 
           <PauseSiteButton
-            clientId={params.id}
+            clientId={id}
             clientName={client.business_name}
             currentStatus={client.status}
           />
 
           <ChurnClientButton
-            clientId={params.id}
+            clientId={id}
             clientName={client.business_name}
             currentStatus={client.status}
           />
@@ -97,7 +154,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
       <div className="page-body">
         {/* ── Persistent Offboarding Checklist (Renders only if status is churned) ── */}
         <OffboardingChecklist
-          clientId={params.id}
+          clientId={id}
           clientStatus={client.status}
           initialNotesStr={client.notes}
         />
@@ -106,8 +163,10 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
         <div className="grid-2">
           {/* Identity */}
           <div className="card">
-            <h2 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 16, color: 'var(--color-text-muted)' }}>IDENTITY</h2>
-            <dl style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '8px 16px', fontSize: '0.875rem' }}>
+            <h2 style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: 18, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Identity & Contact
+            </h2>
+            <dl style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '12px 16px', fontSize: '0.875rem' }}>
               {[
                 ['Contact',      client.contact_name],
                 ['Email',        client.email],
@@ -115,11 +174,15 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                 ['Country',      client.country],
                 ['VAT ID',       client.vat_id],
               ].map(([label, val]) => val ? (
-                <><dt key={`l-${label}`} className="text-muted">{label}</dt><dd key={`v-${label}`}>{val}</dd></>
+                <React.Fragment key={`frag-${label}`}>
+                  <dt className="text-muted" style={{ fontWeight: 500 }}>{label}</dt>
+                  <dd style={{ fontWeight: 600, color: 'var(--color-text)' }}>{val}</dd>
+                </React.Fragment>
               ) : null)}
             </dl>
             {client.notes && (
-              <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+              <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Notes</div>
                 {client.notes}
               </div>
             )}
@@ -127,17 +190,19 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
           {/* Billing */}
           <div className="card">
-            <h2 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 16, color: 'var(--color-text-muted)' }}>BILLING</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <h2 style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: 18, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Billing & Financials
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
               {[
                 ['Monthly plan',   formatCents(client.plan_price_cents, client.currency ?? 'EUR')],
                 ['Lifetime value', formatCents(lifetime?.total_paid_cents ?? 0, client.currency ?? 'EUR')],
                 ['Purchase date',  client.purchase_date ? `${new Date(client.purchase_date).getDate()} of month` : '—'],
                 ['Setup fee',      formatCents(client.setup_fee_cents, client.currency ?? 'EUR')],
               ].map(([label, val]) => (
-                <div key={label}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
-                  <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{val}</div>
+                <div key={label} style={{ padding: '12px 16px', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.25rem', color: label === 'Monthly plan' ? 'var(--color-primary)' : 'var(--color-text)' }}>{val}</div>
                 </div>
               ))}
             </div>
@@ -147,10 +212,11 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                 id="view-stripe-customer"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-ghost btn-sm"
-                style={{ marginTop: 16 }}
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <ExternalLink size={14} /> View in Stripe
+                <ExternalLink size={14} />
+                <span>View customer in Stripe</span>
               </a>
             )}
           </div>
@@ -161,9 +227,9 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
         {/* ── Assets ───────────────────────────────────── */}
         {assets && assets.length > 0 && (
-          <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>SITE ASSETS</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)' }}>
+              <h2 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Site Assets</h2>
             </div>
             <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
               <table className="table">
@@ -173,12 +239,12 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                 <tbody>
                   {assets.map(a => (
                     <tr key={String(a.id)}>
-                      <td><span className="badge badge-lead" style={{ textTransform: 'capitalize' }}>{String(a.type).replace(/_/g, ' ')}</span></td>
-                      <td style={{ fontWeight: 500 }}>{String(a.label)}</td>
+                      <td><span className="badge badge-lead">{String(a.type).replace(/_/g, ' ')}</span></td>
+                      <td style={{ fontWeight: 600 }}>{String(a.label)}</td>
                       <td className="text-muted">{a.value ? String(a.value) : '—'}</td>
                       <td>
                         {a.url
-                          ? <a href={String(a.url)} target="_blank" rel="noopener noreferrer" className="text-primary" style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          ? <a href={String(a.url)} target="_blank" rel="noopener noreferrer" className="text-primary" style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
                               <ExternalLink size={12} /> Open
                             </a>
                           : '—'}
@@ -195,9 +261,9 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
         {/* ── Invoices ──────────────────────────────────── */}
         {invoices && invoices.length > 0 && (
-          <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>INVOICES</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)' }}>
+              <h2 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Invoices</h2>
             </div>
             <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
               <table className="table">
@@ -208,13 +274,13 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                   {invoices.map(inv => (
                     <tr key={String(inv.stripe_invoice_id)}>
                       <td className="text-muted">{String(inv.billing_month ?? fmt(inv.created_at as string))}</td>
-                      <td style={{ fontWeight: 600 }}>{formatCents(Number(inv.amount_cents), String(inv.currency))}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{formatCents(Number(inv.amount_cents), String(inv.currency))}</td>
                       <td><Badge status={String(inv.status)} /></td>
                       <td className="text-muted">{fmt(inv.paid_at as string | null)}</td>
                       <td className="text-muted">{Number(inv.attempt_count)}</td>
-                      <td>
+                      <td style={{ textAlign: 'right' }}>
                         {Boolean(inv.hosted_invoice_url) && (
-                          <a href={String(inv.hosted_invoice_url)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
+                          <a href={String(inv.hosted_invoice_url)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" title="View Hosted Invoice">
                             <ExternalLink size={14} />
                           </a>
                         )}
@@ -229,9 +295,9 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
         {/* ── Change Requests ───────────────────────────── */}
         {requests && requests.length > 0 && (
-          <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>CHANGE REQUESTS</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)' }}>
+              <h2 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Change Requests</h2>
             </div>
             <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
               <table className="table">
@@ -242,7 +308,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                   {requests.map(r => (
                     <tr key={String(r.id)}>
                       <td className="text-muted">{String(r.billing_month)}</td>
-                      <td><span className="badge badge-lead" style={{ textTransform: 'capitalize' }}>{String(r.type).replace(/_/g, ' ')}</span></td>
+                      <td><span className="badge badge-lead">{String(r.type).replace(/_/g, ' ')}</span></td>
                       <td style={{ maxWidth: 280 }} className="truncate">{String(r.description)}</td>
                       <td><Badge status={String(r.status)} /></td>
                       <td className="text-muted">{fmt(r.requested_at as string)}</td>
@@ -256,22 +322,22 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
         {/* ── Activity Log ──────────────────────────────── */}
         {activity && activity.length > 0 && (
-          <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>ACTIVITY LOG</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--color-border)' }}>
+              <h2 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Activity Log</h2>
             </div>
-            <div style={{ padding: '8px 0' }}>
+            <div style={{ padding: '6px 0' }}>
               {activity.map(entry => (
-                <div key={String(entry.id)} style={{ padding: '10px 24px', borderBottom: '1px solid var(--color-border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', gap: 16 }}>
+                <div key={String(entry.id)} style={{ padding: '12px 24px', borderBottom: '1px solid var(--color-border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', gap: 16 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary)', flexShrink: 0 }} />
-                    <span style={{ textTransform: 'capitalize' }}>{String(entry.action).replace(/_/g, ' ')}</span>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary)', boxShadow: '0 0 6px var(--color-primary)', flexShrink: 0 }} />
+                    <span><strong style={{ textTransform: 'capitalize' }}>{String(entry.action).replace(/_/g, ' ')}</strong></span>
                     {Boolean(entry.payload && typeof entry.payload === 'object' && 'to' in (entry.payload as Record<string, unknown>)) && (
                       <Badge status={String((entry.payload as Record<string, unknown>).to)} />
                     )}
                   </div>
                   <span className="text-faint" style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                    {String(entry.created_at)}
+                    {fmt(String(entry.created_at))}
                   </span>
                 </div>
               ))}

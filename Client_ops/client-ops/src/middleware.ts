@@ -48,11 +48,13 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
+  // If user is on /auth, always allow immediately without running heavy DB lookups
+  if (pathname.startsWith('/auth')) {
+    return supabaseResponse
+  }
+
   // Not authenticated → redirect to login if attempting protected route
   if (!user) {
-    if (pathname.startsWith('/auth')) {
-      return supabaseResponse
-    }
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
     return redirectWithCookies(url)
