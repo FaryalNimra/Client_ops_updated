@@ -1,4 +1,6 @@
-import AdminDashboard from '@/app/admin/dashboard/page'
+import AdminDashboardView from '@/components/AdminDashboardView'
+
+export const dynamic = 'force-dynamic'
 
 export default async function OrgDashboardPage({
   params,
@@ -6,5 +8,5 @@ export default async function OrgDashboardPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  return <AdminDashboard orgSlug={slug} />
+  return <AdminDashboardView orgSlug={slug} />
 }

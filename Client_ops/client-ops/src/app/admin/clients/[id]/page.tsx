@@ -8,6 +8,8 @@ import ReminderActionButton from '../../dashboard/ReminderActionButton'
 import OffboardingChecklist from '../OffboardingChecklist'
 import ChurnClientButton from '../ChurnClientButton'
 import ClientPaymentActions from '@/components/ClientPaymentActions'
+import ClientPortalAccessCard from '@/components/ClientPortalAccessCard'
+import { syncClientWithStripe } from '@/lib/stripeSync'
 import type { Database } from '@/types/database'
 
 type Client = Database['public']['Tables']['clients']['Row']
@@ -79,14 +81,25 @@ export default async function ClientDetailPage(props: {
     supabase.from('activity_log').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(20),
   ])
 
-  const client = rawClient as Client | null
+  let client = rawClient as Client | null
   const assets = rawAssets as Record<string, unknown>[] | null
-  const invoices = rawInvoices as Record<string, unknown>[] | null
+  let invoices = rawInvoices as Record<string, unknown>[] | null
   const requests = rawRequests as Record<string, unknown>[] | null
   const lifetime = rawLifetime as { total_paid_cents?: number } | null
   const activity = rawActivity as Record<string, unknown>[] | null
 
   if (!client) notFound()
+
+  // Auto-sync with Stripe if onboarding or missing subscription ID
+  if (client.status === 'onboarding' || !client.stripe_subscription_id) {
+    const synced = await syncClientWithStripe(id)
+    if (synced && synced.status === 'active') {
+      client = synced
+      // Refresh invoices if synced
+      const { data: freshInvoices } = await supabase.from('invoices').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(20)
+      if (freshInvoices) invoices = freshInvoices as Record<string, unknown>[]
+    }
+  }
 
   return (
     <>
@@ -224,6 +237,9 @@ export default async function ClientDetailPage(props: {
 
         {/* ── Stripe Payment & Checkout Actions ──────── */}
         <ClientPaymentActions client={client} />
+
+        {/* ── Client Portal Login Credentials ────────── */}
+        <ClientPortalAccessCard client={client} />
 
         {/* ── Assets ───────────────────────────────────── */}
         {assets && assets.length > 0 && (

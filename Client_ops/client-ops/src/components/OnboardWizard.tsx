@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { ChevronRight, ChevronLeft, Check, Loader2, Globe, Link as LinkIcon, Copy, MessageCircle, Mail } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, Loader2, Globe, Link as LinkIcon, Copy, MessageCircle, Mail, Key, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import type { Database } from '@/types/database'
 
 const STEPS = ['Business', 'Assets', 'Billing', 'Done']
@@ -39,12 +39,23 @@ export default function OnboardWizard({ orgId, orgSlug }: { orgId: string; orgSl
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [clientId, setClientId] = useState('')
   const [checkoutUrl, setCheckoutUrl] = useState('')
+  const [portalPassword, setPortalPassword] = useState('')
+  const [showPortalPassword, setShowPortalPassword] = useState(false)
 
   // Step 1 — Business
   const [biz, setBiz] = useState({
     business_name: '', contact_name: '', email: '',
     phone: '', country: '', vat_id: '', currency: 'EUR', notes: '',
   })
+
+  function generateRandomPassword() {
+    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$'
+    let pass = ''
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    setPortalPassword(pass)
+  }
 
   // Validation functions
   function validateBusiness() {
@@ -174,27 +185,70 @@ export default function OnboardWizard({ orgId, orgSlug }: { orgId: string; orgSl
     if (!validateBusiness()) return
     setLoading(true)
     setError('')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error: dbErr } = await (supabase.from('clients') as any)
-      .insert({
-        org_id: orgId,
-        business_name: biz.business_name.trim(),
-        contact_name: biz.contact_name.trim(),
-        email: biz.email.trim(),
-        phone: biz.phone.trim(),
-        country: biz.country.trim(),
-        vat_id: biz.vat_id.trim(),
-        currency: biz.currency,
-        notes: biz.notes.trim(),
-        status: 'onboarding',
-        plan_price_cents,
-        setup_fee_cents,
-      })
-      .select('id')
-      .single()
+    let targetClientId = clientId
 
-    if (dbErr || !data) { setError(dbErr?.message ?? 'Failed to create client'); setLoading(false); return }
-    setClientId((data as { id: string }).id)
+    if (clientId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: dbErr } = await (supabase.from('clients') as any)
+        .update({
+          business_name: biz.business_name.trim(),
+          contact_name: biz.contact_name.trim(),
+          email: biz.email.trim(),
+          phone: biz.phone.trim(),
+          country: biz.country.trim(),
+          vat_id: biz.vat_id.trim(),
+          currency: biz.currency,
+          notes: biz.notes.trim(),
+          plan_price_cents,
+          setup_fee_cents,
+        })
+        .eq('id', clientId)
+
+      if (dbErr) { setError(dbErr.message); setLoading(false); return }
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error: dbErr } = await (supabase.from('clients') as any)
+        .insert({
+          org_id: orgId,
+          business_name: biz.business_name.trim(),
+          contact_name: biz.contact_name.trim(),
+          email: biz.email.trim(),
+          phone: biz.phone.trim(),
+          country: biz.country.trim(),
+          vat_id: biz.vat_id.trim(),
+          currency: biz.currency,
+          notes: biz.notes.trim(),
+          status: 'onboarding',
+          plan_price_cents,
+          setup_fee_cents,
+        })
+        .select('id')
+        .single()
+
+      if (dbErr || !data) { setError(dbErr?.message ?? 'Failed to create client'); setLoading(false); return }
+      targetClientId = (data as { id: string }).id
+      setClientId(targetClientId)
+    }
+
+    // If portal password was entered, create/update client auth user
+    if (portalPassword && portalPassword.length >= 6) {
+      try {
+        await fetch('/api/admin/create-client-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: targetClientId,
+            email: biz.email.trim(),
+            password: portalPassword.trim(),
+            full_name: biz.contact_name || biz.business_name,
+            org_id: orgId,
+          }),
+        })
+      } catch (userErr) {
+        console.warn('Could not auto-create portal account:', userErr)
+      }
+    }
+
     const slug = makeSlug(biz.business_name)
     prefillAssets(slug)
     setLoading(false)
@@ -425,6 +479,53 @@ export default function OnboardWizard({ orgId, orgSlug }: { orgId: string; orgSl
                 )}
               </div>
             </div>
+            {/* Client Portal Password */}
+            <div className="form-group" style={{ background: 'var(--color-surface-2)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="form-label" style={{ marginBottom: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Key size={14} color="var(--color-primary)" /> Client Portal Password (Optional)
+                </label>
+                <button
+                  type="button"
+                  onClick={generateRandomPassword}
+                  className="btn btn-ghost btn-xs"
+                  style={{ fontSize: '0.75rem', gap: 4 }}
+                >
+                  <RefreshCw size={12} /> Auto-Generate
+                </button>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPortalPassword ? 'text' : 'password'}
+                  className="form-input"
+                  value={portalPassword}
+                  onChange={e => setPortalPassword(e.target.value)}
+                  placeholder="e.g. Client123! (Assign login password for customer)"
+                  style={{ paddingRight: 40 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPortalPassword(p => !p)}
+                  style={{
+                    position: 'absolute',
+                    right: 10,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                  }}
+                  title={showPortalPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPortalPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <span className="form-hint" style={{ marginTop: 4 }}>
+                Client can use their email (<strong>{biz.email || 'client email'}</strong>) and this password to log in at <code>/auth?role=client</code>.
+              </span>
+            </div>
+
             <div className="form-group">
               <label className="form-label" htmlFor="client-notes">Notes (internal)</label>
               <textarea
@@ -738,6 +839,65 @@ export default function OnboardWizard({ orgId, orgSlug }: { orgId: string; orgSl
                   style={{ gap: 6, background: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', borderColor: 'rgba(59, 130, 246, 0.3)' }}
                 >
                   <Mail size={14} /> Send via Email
+                </a>
+              </div>
+            </div>
+          )}
+
+          {portalPassword && (
+            <div style={{
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 20,
+              marginBottom: 24,
+              textAlign: 'left',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                🔐 Client Portal Login Details
+              </div>
+              <div style={{ fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div><strong>Portal URL:</strong> <code style={{ color: 'var(--color-text)', wordBreak: 'break-all' }}>{typeof window !== 'undefined' ? `${window.location.origin}/auth?role=client` : '/auth?role=client'}</code></div>
+                <div><strong>Email:</strong> <code style={{ color: 'var(--color-text)' }}>{biz.email}</code></div>
+                <div><strong>Password:</strong> <code style={{ color: '#22C55E', fontWeight: 700 }}>{portalPassword}</code></div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const text = `Client Portal Login Details:\n• Portal URL: ${window.location.origin}/auth?role=client\n• Email: ${biz.email}\n• Password: ${portalPassword}`
+                    await navigator.clipboard.writeText(text)
+                    alert('Credentials copied to clipboard! ✅')
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ gap: 6 }}
+                >
+                  <Copy size={14} /> Copy Credentials
+                </button>
+
+                <a
+                  href={`https://wa.me/${biz.phone ? biz.phone.replace(/[^0-9]/g, '') : ''}?text=${encodeURIComponent(
+                    `Hello ${biz.contact_name || biz.business_name},\n\nHere are your Client Portal login details:\n• Portal URL: ${typeof window !== 'undefined' ? window.location.origin : ''}/auth?role=client\n• Email: ${biz.email}\n• Password: ${portalPassword}\n\nPlease keep this safe.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ gap: 6, background: 'rgba(37, 211, 102, 0.15)', color: '#25D366', borderColor: 'rgba(37, 211, 102, 0.3)' }}
+                >
+                  <MessageCircle size={14} /> Send Login via WhatsApp
+                </a>
+
+                <a
+                  href={`mailto:${biz.email}?subject=${encodeURIComponent(`Client Portal Login — ${biz.business_name}`)}&body=${encodeURIComponent(
+                    `Hello ${biz.contact_name || biz.business_name},\n\nHere are your Client Portal login details:\n\nPortal URL: ${typeof window !== 'undefined' ? window.location.origin : ''}/auth?role=client\nEmail: ${biz.email}\nPassword: ${portalPassword}\n\nThank you!`
+                  )}`}
+                  className="btn btn-secondary btn-sm"
+                  style={{ gap: 6, background: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                >
+                  <Mail size={14} /> Send Login via Email
                 </a>
               </div>
             </div>

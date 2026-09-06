@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Link as LinkIcon, Check, Copy, ExternalLink, MessageCircle, Mail, DollarSign, Loader2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Link as LinkIcon, Check, Copy, ExternalLink, MessageCircle, Mail, RefreshCw, Loader2 } from 'lucide-react'
 
 interface ClientPaymentActionsProps {
   client: {
@@ -21,16 +22,49 @@ interface ClientPaymentActionsProps {
 }
 
 export default function ClientPaymentActions({ client }: ClientPaymentActionsProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
-  const [manualSuccess, setManualSuccess] = useState('')
+  const [syncMessage, setSyncMessage] = useState('')
 
   const isPaid = client.status === 'active' || !!client.stripe_subscription_id
   const currency = client.currency || 'EUR'
   const monthlyAmount = ((client.plan_price_cents || 3000) / 100).toFixed(2)
-  const setupAmount = ((client.setup_fee_cents || 0) / 100).toFixed(2)
+
+  // Auto-sync if redirected from successful checkout
+  useEffect(() => {
+    if (searchParams.get('checkout') === 'success' && !isPaid) {
+      handleSyncStripe(true)
+    }
+  }, [searchParams, isPaid])
+
+  async function handleSyncStripe(isAuto = false) {
+    setSyncing(true)
+    setError('')
+    setSyncMessage(isAuto ? 'Syncing completed checkout with Stripe…' : 'Checking Stripe for latest payment…')
+    try {
+      const res = await fetch('/api/stripe/sync-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: client.id }),
+      })
+      const data = await res.json()
+      if (data.synced) {
+        setSyncMessage('✅ Successfully synced with Stripe! Status updated to Paid & Active.')
+        router.refresh()
+      } else {
+        setSyncMessage(data.message || 'No active payment found in Stripe for this client.')
+      }
+    } catch {
+      setError('Network error while syncing with Stripe')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   async function generatePaymentLink() {
     setLoading(true)
@@ -114,18 +148,45 @@ export default function ClientPaymentActions({ client }: ClientPaymentActionsPro
           </p>
         </div>
 
-        {!isPaid && !checkoutUrl && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Sync Button */}
           <button
-            onClick={generatePaymentLink}
-            disabled={loading}
-            className="btn btn-primary"
-            style={{ gap: 8 }}
+            onClick={() => handleSyncStripe(false)}
+            disabled={syncing}
+            className="btn btn-secondary btn-sm"
+            style={{ gap: 6 }}
+            title="Sync latest payment status directly from Stripe API"
           >
-            {loading ? <Loader2 size={16} className="spinner" /> : <LinkIcon size={16} />}
-            {loading ? 'Creating Link…' : 'Generate Payment Link'}
+            <RefreshCw size={14} className={syncing ? 'spinner' : ''} />
+            {syncing ? 'Syncing…' : 'Sync from Stripe'}
           </button>
-        )}
+
+          {!isPaid && !checkoutUrl && (
+            <button
+              onClick={generatePaymentLink}
+              disabled={loading}
+              className="btn btn-primary btn-sm"
+              style={{ gap: 8 }}
+            >
+              {loading ? <Loader2 size={16} className="spinner" /> : <LinkIcon size={16} />}
+              {loading ? 'Creating Link…' : 'Generate Payment Link'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {syncMessage && (
+        <div style={{
+          background: syncMessage.startsWith('✅') ? 'rgba(34,197,94,0.1)' : 'var(--color-surface-2)',
+          border: `1px solid ${syncMessage.startsWith('✅') ? 'rgba(34,197,94,0.3)' : 'var(--color-border)'}`,
+          color: syncMessage.startsWith('✅') ? '#22C55E' : 'var(--color-text)',
+          padding: '10px 14px',
+          borderRadius: 8,
+          fontSize: '0.85rem',
+        }}>
+          {syncMessage}
+        </div>
+      )}
 
       {error && (
         <div style={{ background: 'var(--color-danger-dim)', color: 'var(--color-danger)', padding: '10px 14px', borderRadius: 8, fontSize: '0.85rem' }}>

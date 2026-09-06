@@ -6,6 +6,7 @@ import { ExternalLink, Globe, FileText, Calendar, CheckCircle2, AlertTriangle } 
 import ManageBillingButton from './ManageBillingButton'
 import ClientRequestsSection from './ClientRequestsSection'
 import ClientAccountForm from './ClientAccountForm'
+import { syncClientWithStripe } from '@/lib/stripeSync'
 import type { Database } from '@/types/database'
 
 type ClientRecord = Database['public']['Tables']['clients']['Row']
@@ -117,12 +118,22 @@ function getCurrentBillingMonth() {
       .order('requested_at', { ascending: false }),
   ])
 
-  const client = rawClient as ClientRecord | null
+  let client = rawClient as ClientRecord | null
   const assets = rawAssets as AssetRecord[] | null
-  const invoices = rawInvoices as InvoiceRecord[] | null
+  let invoices = rawInvoices as InvoiceRecord[] | null
   const requests = rawRequests as Database['public']['Tables']['change_requests']['Row'][] | null
 
   if (!client) notFound()
+
+  // Auto-sync with Stripe if client is onboarding or missing subscription ID
+  if (client.status === 'onboarding' || !client.stripe_subscription_id) {
+    const synced = await syncClientWithStripe(clientId)
+    if (synced && synced.status === 'active') {
+      client = synced
+      const { data: freshInvoices } = await supabase.from('invoices').select('*').eq('client_id', clientId).order('created_at', { ascending: false })
+      if (freshInvoices) invoices = freshInvoices as InvoiceRecord[]
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -143,7 +154,7 @@ function getCurrentBillingMonth() {
           </div>
 
           {/* Manage Billing Action */}
-          <ManageBillingButton />
+          <ManageBillingButton stripeCustomerId={client.stripe_customer_id} />
         </div>
 
         {/* Subscription KPI row */}

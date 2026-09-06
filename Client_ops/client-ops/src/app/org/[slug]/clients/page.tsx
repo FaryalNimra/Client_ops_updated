@@ -1,6 +1,6 @@
-export const dynamic = 'force-dynamic'
+import ClientsPageView from '@/components/ClientsPageView'
 
-import ClientsPage from '@/app/admin/clients/page'
+export const dynamic = 'force-dynamic'
 
 export default async function OrgClientsPage({
   params,
@@ -11,6 +11,5 @@ export default async function OrgClientsPage({
 }) {
   const { slug } = await params
   const sp = searchParams ? await searchParams : {}
-  return <ClientsPage orgSlug={slug} searchParams={sp} />
+  return <ClientsPageView orgSlug={slug} searchParams={sp} />
 }
-

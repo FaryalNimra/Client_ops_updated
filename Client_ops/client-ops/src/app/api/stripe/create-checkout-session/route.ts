@@ -64,8 +64,8 @@ export async function POST(request: Request) {
       subscription_data: {
         metadata: { client_id, org_id },
       },
-      success_url: `${appUrl}/admin/clients/${client_id}?checkout=success`,
-      cancel_url:  `${appUrl}/admin/onboard?checkout=cancelled`,
+      success_url: `${appUrl}/client/checkout-success?session_id={CHECKOUT_SESSION_ID}&client_id=${client_id}`,
+      cancel_url:  `${appUrl}/client/checkout-cancelled?client_id=${client_id}`,
       allow_promotion_codes: false,
       billing_address_collection: 'auto',
       tax_id_collection: { enabled: true },
