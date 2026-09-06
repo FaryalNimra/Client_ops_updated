@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Link as LinkIcon, Check, Copy, ExternalLink, MessageCircle, Mail, RefreshCw, Loader2 } from 'lucide-react'
 
@@ -35,14 +35,7 @@ export default function ClientPaymentActions({ client }: ClientPaymentActionsPro
   const currency = client.currency || 'EUR'
   const monthlyAmount = ((client.plan_price_cents || 3000) / 100).toFixed(2)
 
-  // Auto-sync if redirected from successful checkout
-  useEffect(() => {
-    if (searchParams.get('checkout') === 'success' && !isPaid) {
-      handleSyncStripe(true)
-    }
-  }, [searchParams, isPaid])
-
-  async function handleSyncStripe(isAuto = false) {
+  const handleSyncStripe = useCallback(async (isAuto = false) => {
     setSyncing(true)
     setError('')
     setSyncMessage(isAuto ? 'Syncing completed checkout with Stripe…' : 'Checking Stripe for latest payment…')
@@ -64,7 +57,14 @@ export default function ClientPaymentActions({ client }: ClientPaymentActionsPro
     } finally {
       setSyncing(false)
     }
-  }
+  }, [client.id, router])
+
+  // Auto-sync if redirected from successful checkout
+  useEffect(() => {
+    if (searchParams.get('checkout') === 'success' && !isPaid) {
+      handleSyncStripe(true)
+    }
+  }, [searchParams, isPaid, handleSyncStripe])
 
   async function generatePaymentLink() {
     setLoading(true)

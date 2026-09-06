@@ -34,7 +34,7 @@ export async function syncClientWithStripe(clientId: string): Promise<Database['
 
     let subscriptionId: string | null = client.stripe_subscription_id || (matchingSession?.subscription as string) || null
     let customerId: string | null = client.stripe_customer_id || (matchingSession?.customer as string) || null
-    let customerEmail = matchingSession?.customer_details?.email || matchingSession?.customer_email || client.email
+    const customerEmail = matchingSession?.customer_details?.email || matchingSession?.customer_email || client.email
 
     // 3. Fallback: Search Stripe Customers by email if no session found
     if (!subscriptionId && client.email) {

@@ -8,8 +8,6 @@ import {
   LogOut,
   AlertCircle,
   Building2,
-  FileText,
-  Inbox,
   UserPlus,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
@@ -35,7 +33,6 @@ export default function Sidebar({
   orgName,
   orgSlug,
   failedCount = 0,
-  openRequestsCount = 0,
 }: SidebarProps) {
   const pathname = usePathname()
 
